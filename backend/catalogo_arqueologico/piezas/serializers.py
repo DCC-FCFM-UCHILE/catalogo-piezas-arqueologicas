@@ -199,7 +199,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
         - A dictionary with the URL of the object, material and texture of the model or an empty dictionary if the model does not exist.
         """
         realModel = instance.id_model
-        if not realModel:
+        if not realModel or not realModel.object or not realModel.material or not realModel.texture:
             return {"object": "", "material": "", "texture": ""}
         modelDict = {
             "object": self.context["request"].build_absolute_uri(realModel.object.url),

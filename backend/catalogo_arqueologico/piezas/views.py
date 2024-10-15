@@ -528,13 +528,7 @@ class ArtifactCreateUpdateAPIView(generics.GenericAPIView):
 
         logger.info(f"Handle file uploads for artifact {instance.id}")
         # Handle file uploads
-        try:
-            self.handle_file_uploads(instance, request.FILES, request.data)
-        except Exception as e:
-            logger.error(f"Error al subir archivos: {e}")
-            return Response(
-                {"detail": f"Error al subir archivos"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.handle_file_uploads(instance, request.FILES, request.data)
         # Save again to ensure all related objects are properly linked
         instance.save()
 
@@ -584,6 +578,7 @@ class ArtifactCreateUpdateAPIView(generics.GenericAPIView):
 
         # Handle model files
         # New files
+        # check if model files are sent in the request
         new_texture_file = files.get("model[new_texture]")
         new_object_file = files.get("model[new_object]")
         new_material_file = files.get("model[new_material]")
@@ -609,15 +604,17 @@ class ArtifactCreateUpdateAPIView(generics.GenericAPIView):
             texture=(
                 new_texture_instance
                 if new_texture_instance
-                else instance.id_model.texture
+                else None if not instance.id_model else instance.id_model.texture
             ),
             object=(
-                new_object_instance if new_object_instance else instance.id_model.object
+                new_object_instance 
+                if new_object_instance 
+                else None if not instance.id_model else instance.id_model.object
             ),
             material=(
                 new_material_instance
                 if new_material_instance
-                else instance.id_model.material
+                else None if not instance.id_model else instance.id_model.material
             ),
         )
         if created:
