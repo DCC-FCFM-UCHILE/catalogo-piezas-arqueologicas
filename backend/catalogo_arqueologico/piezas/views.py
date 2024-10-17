@@ -339,7 +339,8 @@ class CatalogAPIView(generics.ListAPIView):
             queryset: The queryset containing all artifacts in the catalog.
         """
         queryset = Artifact.objects.all().order_by("id")
-        # Filter by query parameters
+
+        # Filtros a partir de parámetros de consulta (query parameters)
         description = self.request.query_params.get("query", None)
         culture = self.request.query_params.get("culture", None)
         shape = self.request.query_params.get("shape", None)
@@ -349,11 +350,7 @@ class CatalogAPIView(generics.ListAPIView):
 
         # Case insensitive search
         if description is not None:
-            # Check if the description is in the artifact's description
-            # or the Id of the artifact
-            q_objects &= Q(description__icontains=description) | Q(
-                id__icontains=description
-            )
+            q_objects &= Q(description__icontains=description) | Q(id__icontains=description)
         if culture is not None:
             q_objects &= Q(id_culture__name__iexact=culture)
         if shape is not None:
@@ -362,7 +359,25 @@ class CatalogAPIView(generics.ListAPIView):
             for tag in tags.split(","):
                 q_objects &= Q(id_tags__name__iexact=tag.strip())
 
-        return queryset.filter(q_objects)
+        # Filtramos el queryset con los q_objects
+        filtered_queryset = queryset.filter(q_objects)
+        return filtered_queryset
+
+    def get_available_filters(self, filtered_queryset):
+        """
+        Obtiene las culturas, formas y etiquetas disponibles en el queryset filtrado.
+        """
+        available_cultures = Artifact.objects.filter(id__in=filtered_queryset).values_list('id_culture__name', flat=True).distinct()
+        available_shapes = Artifact.objects.filter(id__in=filtered_queryset).values_list('id_shape__name', flat=True).distinct()
+        available_tags = Artifact.objects.filter(id__in=filtered_queryset).values_list('id_tags__name', flat=True).distinct()
+
+        available_filters = {
+            "cultures": list(available_cultures),
+            "shapes": list(available_shapes),
+            "tags": list(available_tags),
+        }
+        print(available_filters)
+        return available_filters
 
     def get_serializer_context(self):
         """
@@ -389,15 +404,23 @@ class CatalogAPIView(generics.ListAPIView):
             Response: Django REST Framework's Response object containing paginated
                 data for the artifacts.
         """
+        # Obtiene el queryset filtrado
         queryset = self.filter_queryset(self.get_queryset())
+        
+        # Obtiene los filtros únicos (culturas, formas, etiquetas)
+        available_filters = self.get_available_filters(queryset)
+
+        # Paginación si es necesario
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             page_data = self.get_paginated_response(serializer.data).data
-            return Response({**page_data})
+            return Response({**page_data, "filters": available_filters})
 
+
+        # Respuesta sin paginación
         serializer = self.get_serializer(queryset, many=True)
-        return Response({"data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"data": serializer.data, "filters": available_filters}, status=status.HTTP_200_OK)
 
 
 class ArtifactCreateUpdateAPIView(generics.GenericAPIView):

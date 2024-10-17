@@ -22,7 +22,7 @@ import { useToken } from "../../../hooks/useToken";
  * @param {function} setFilter - Function to update the filter state.
  * @returns {JSX.Element} Component for filtering artifacts.
  */
-const CatalogFilter = ({ filter, setFilter }) => {
+const CatalogFilter = ({ filter, setFilter ,options}) => {
   const { addAlert } = useSnackBars();
   const { token } = useToken();
   // Search params from the URL
@@ -80,7 +80,6 @@ const CatalogFilter = ({ filter, setFilter }) => {
       })
       .then((response) => {
         let metadata = response.data;
-
         let shapes = metadata.shapes;
         let shapesNames = shapes.map((shape) => shape.value);
         let cultures = metadata.cultures;
@@ -126,6 +125,20 @@ const CatalogFilter = ({ filter, setFilter }) => {
     }
     setSearchParams(searchParams);
   }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() =>{
+    console.log(options)
+    
+    if (Object.keys(options).length === 0 && options.constructor === Object) {
+      console.log("El objeto está vacío");
+    } else {
+      setShapeOptions(options.shapes);
+      setCultureOptions(options.cultures);
+      setTagOptions(options.tags);
+    }
+
+  },[options])
+
 
   return (
     <CustomBox>

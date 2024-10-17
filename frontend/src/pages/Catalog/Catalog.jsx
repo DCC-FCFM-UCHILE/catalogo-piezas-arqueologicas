@@ -36,6 +36,7 @@ const Catalog = () => {
     setFilter,
     pagination,
     setPagination,
+    options
   } = useFetchItems(API_URLS.ALL_ARTIFACTS);
 
 
@@ -51,7 +52,7 @@ const Catalog = () => {
       {/* Title of the catalog */}
       <CustomTypography variant="h1">Catálogo</CustomTypography>
       {/* Component for filtering artifacts */}
-      <CatalogFilter filter={filter} setFilter={setFilter} />
+      <CatalogFilter filter={filter} setFilter={setFilter} options = {options} />
   {/* Button to add new artifact (visible to logged-in users) */}
       {loggedIn && (
         <CustomBox>

@@ -18,7 +18,7 @@ const useFetchItems = (baseUrl) => {
   const { token } = useToken(); // Retrieves authentication token using custom hook useToken.
   const { addAlert } = useSnackBars(); // Retrieves alert function using custom hook useSnackBars.
   const [loading, setLoading] = useState(true); // State to track loading state of data fetching.
-
+  const [options,setOptions] = useState({});  
   // State to manage filter criteria for fetching items.
   const [filter, setFilter] = useState({
     query: "",
@@ -71,9 +71,11 @@ const useFetchItems = (baseUrl) => {
             total_pages: totalPages,
             total,
             data,
+            filters 
           } = response;
           setPagination({ currentPage, total, perPage, totalPages });
           setItems(data);
+          setOptions(filters);
         })
         .catch((error) => {
           addAlert(error.message);
@@ -92,6 +94,7 @@ const useFetchItems = (baseUrl) => {
     setFilter,
     pagination,
     setPagination,
+    options
   };
 };
 
