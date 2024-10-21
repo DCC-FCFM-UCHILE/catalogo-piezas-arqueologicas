@@ -31,6 +31,7 @@ urlpatterns = [
     path("docs/", include_docs_urls(title="Metadata API")),
     path("artifacts/", views.CatalogAPIView.as_view()),
     path("artifact/upload", views.ArtifactCreateUpdateAPIView.as_view()),
+    path("artifact/bulkloading", views.BulkLoadingAPIView.as_view()),
     path("artifact/<int:pk>/", views.ArtifactDetailAPIView.as_view()),
     path("artifact/<int:pk>/update", views.ArtifactCreateUpdateAPIView.as_view()),
     path("metadata/", views.MetadataListAPIView.as_view()),

@@ -6,6 +6,7 @@ import MenuBar from "./MenuBar";
 import NotFound from "./NotFound";
 import { useToken } from "../hooks/useToken";
 import { CircularProgress } from "@mui/material";
+import BulkLoading from "../pages/Catalog/BulkLoading";
 
 // Lazy-loaded components
 const Home = lazy(() => import("../pages/Home/Home"));
@@ -57,6 +58,7 @@ const Layout = () => {
           {/* Nested route for catalog with authorization check */}
           <Route element={<PrivateRouteWrapper />}>
             <Route path="/catalog/new" element={<CreateArtifact />} />
+            <Route path="/catalog/bulkloading" element={<BulkLoading />} />
             <Route path="/catalog/:artifactId/edit" element={<EditArtifact />} />
           </Route>
           <Route path="*" element={<NotFound />} /> {/* Catch-all route for 404 */}

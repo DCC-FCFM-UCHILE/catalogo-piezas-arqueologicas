@@ -37,6 +37,19 @@ const MenuBar = () => {
       state: { from: location },
     });
   };
+
+/**
+ * Navigates to the bulk loading page if not already on it.
+ */
+  const handleBulkLoadingClick = () => {
+    // If we are already in the bulk loading page, do nothing
+    if (location.pathname === "/catalog/bulkloading") {
+      return;
+    }
+    navigate("/catalog/bulkloading", {
+      state: { from: location },
+    });
+  }
   
 /**
    * Navigates to the login page.
@@ -84,6 +97,14 @@ const MenuBar = () => {
         <Box sx={{ display: "flex", flexGrow: 1, justifyContent:"flex-end" }}>
           {/* Conditional rendering based on user authentication */}
           {loggedIn && (
+            <>
+            <Button
+              onClick={handleBulkLoadingClick}
+              color="inherit"
+              style={{ marginRight: 55 }}
+            >
+              Carga masiva
+            </Button>
             <Button
               onClick={handleNewObjectClick}
               color="inherit"
@@ -91,6 +112,7 @@ const MenuBar = () => {
             >
               Agregar pieza
             </Button>
+            </>
           )}
           {!loggedIn ? (
             <Button color="inherit" onClick={handleLoginClick}>

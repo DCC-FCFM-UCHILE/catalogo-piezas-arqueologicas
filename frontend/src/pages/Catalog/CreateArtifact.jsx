@@ -22,6 +22,8 @@ export const allowedFileTypes = {
   material: ["mtl"],
   thumbnail: ["jpg", "png"],
   images: ["jpg", "png"],
+  excel: ["xlsx"],
+  zip: ["zip"],
 };
 
 const CreateArtifact = () => {

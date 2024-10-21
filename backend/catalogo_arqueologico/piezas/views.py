@@ -15,6 +15,10 @@ Classes:
 
 import math
 import zipfile
+import pandas as pd
+import time
+import re
+import shutil
 from io import BytesIO
 import logging
 import os
@@ -663,6 +667,348 @@ class ArtifactCreateUpdateAPIView(generics.GenericAPIView):
             # Create Image instance
             image = Image.objects.create(id_artifact=instance, path=image_file)
             logger.info(f"Image created: {image.path}")
+
+
+class BulkLoadingAPIView(generics.GenericAPIView):
+    """
+    A view that provides functionality for bulk loading artifacts.
+
+    It extends Django REST Framework's GenericAPIView.
+
+    Attributes:
+        queryset: Specifies the queryset that this view will use to retrieve
+            the Artifact objects. It retrieves all Artifact objects.
+        serializer_class: Specifies the serializer class that should be used
+            for serializing the Artifact objects.
+        authentication_classes: Defines the list of authentication classes that
+            apply to this view. It is set to TokenAuthentication.
+        permission_classes: Defines the list of permissions that apply to
+            this view. It is set to allow only authenticated users with the
+            role of 'Funcionario' or 'Administrador' to access this view.
+    """
+
+    queryset = Artifact.objects.all()
+    serializer_class = UpdateArtifactSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [
+        permissions.IsAuthenticated & (IsFuncionarioPermission | IsAdminPermission)
+    ]
+
+    def post(self, request, *args, **kwargs):
+        """
+        Handles POST requests.
+
+        It bulk loads artifacts and returns a response containing the serialized
+        data for the created artifacts.
+
+        Args:
+            request: The HTTP request object.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            Response: Django REST Framework's Response object containing serialized
+                data for the created artifacts.
+        """
+        errores = []
+        logger.info("Bulk loading artifacts")
+        try:
+            zip_file = request.FILES.get("zip")
+            excel_file = request.FILES.get("excel")
+        except KeyError:
+            return Response(
+                {"detail": "Se requiere un archivo ZIP y un archivo Excel"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        # Check if the files are ZIP and Excel files
+        if not zipfile.is_zipfile(zip_file):
+            return Response(
+                {"detail": "El archivo ZIP no es válido"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not excel_file.name.endswith(".xlsx"):
+            return Response(
+                {"detail": "El archivo Excel no es válido"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        # Read the Excel file
+        try:
+            artifacts = self.read_excel(excel_file)
+            logger.info(f"Excel file read: {artifacts.head()}")
+        except Exception as e:
+            logger.error(f"Error al leer el archivo Excel: {e}")
+            return Response(
+                {"detail": "Error al leer el archivo Excel"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        
+        #validate the excel file
+        valid, errors = self.validate_data(artifacts)
+        if not valid:
+            return Response(
+                {"detail": "Error al validar el archivo Excel", "errores": errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        # Unzip the ZIP file and put the files in a temporary folder
+        temp_dir = settings.MEDIA_ROOT+"temp/"+str(hash(zip_file.name+str(time.time())))
+        try:
+            with zipfile.ZipFile(zip_file, "r") as zip_ref:
+                zip_ref.extractall(temp_dir)
+        except Exception as e:
+            logger.error(f"Error al extraer el archivo ZIP: {e}")
+            return Response(
+                {"detail": "Error al extraer el archivo ZIP"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        
+        #list all files in the temp folder
+        files = self.list_files(temp_dir)
+        files_not_temp_path = [file.replace(temp_dir, "") for file in files]
+        files_not_temp_path = [os.path.normpath(file) for file in files_not_temp_path]
+        #validar que los archivos necesarios estén en el zip
+        valid, errors, data_with_files = self.validate_files(artifacts, files_not_temp_path)
+        if not valid:
+            self.delete_files(temp_dir)
+            return Response(
+                {"detail": "Error al validar los archivos", "errores": errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Iterate over the artifacts and create or update them
+        for data in data_with_files:
+            try:
+                #buscar etiquetas
+                tags_instances = []
+                for tag in data["tags"]:
+                    tag_instance = Tag.objects.get(name=tag)
+                    tags_instances.append(tag_instance)
+                
+                #buscar la cultura
+                culture_instance = Culture.objects.get(name=data["culture"])
+
+                #buscar la forma
+                shape_instance = Shape.objects.get(name=data["shape"])
+
+                #descripción
+                description = data["description"]
+
+                #buscar algun archivo de thumbnail
+                thumbnail = data["file_thumbnail"]
+                thumbnail_path = os.path.normpath(temp_dir + thumbnail)
+                with open(thumbnail_path, "rb") as f:
+                    thumbnail_file = File(f, name=thumbnail)
+                    thumbnail_instance = Thumbnail.objects.create(path=thumbnail_file)
+
+                #buscar los archivos de modelo
+                models = data["files_model"]
+                texture_file = [file for file in models if file.endswith(".jpg")]
+                object_file = [file for file in models if file.endswith(".obj")]
+                material_file = [file for file in models if file.endswith(".mtl")]
+                if texture_file != [] and object_file != [] and material_file != []:
+                    texture_path = os.path.normpath(temp_dir + texture_file[0])
+                    object_path = os.path.normpath(temp_dir + object_file[0])
+                    material_path = os.path.normpath(temp_dir + material_file[0])
+                    with open(texture_path, "rb") as f:
+                        texture_file = File(f, name=texture_file[0])
+                        with open(object_path, "rb") as f:
+                            object_file = File(f, name=object_file[0])
+                            with open(material_path, "rb") as f:
+                                material_file = File(f, name=material_file[0])
+                                model, created = Model.objects.get_or_create(
+                                    texture=texture_file,
+                                    object=object_file,
+                                    material=material_file,
+                                )
+                    if created:
+                        logger.info(f"Model created: {model.texture}, {model.object}, {model.material}")
+                    else:
+                        logger.info(f"Model updated: {model.texture}, {model.object}, {model.material}")
+                else:
+                    model = None
+
+                # crear la pieza
+                artifact = Artifact.objects.create(
+                    description=description,
+                    id_thumbnail=thumbnail_instance,
+                    id_model=model,
+                    id_shape=shape_instance,
+                    id_culture=culture_instance,
+                )
+                artifact.save()
+                #imagenes
+                images = data["files_images"]
+                images_instances = []
+                for image in images:
+                    image_path = os.path.normpath(temp_dir + image)
+                    with open(image_path, "rb") as f:
+                        image_file = File(f, name=image)
+                        image_instance = Image.objects.create(path=image_file, id_artifact=artifact)
+                        images_instances.append(image_instance)
+
+                for tag_instance in tags_instances:
+                    artifact.id_tags.add(tag_instance)
+            except Exception as e:
+                self.delete_files(temp_dir)
+                return Response(
+                    {"detail": f"Error al cargar las piezas: {e}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+        # Delete the temporary folder and its contents
+        self.delete_files(temp_dir)
+
+        
+        return Response(
+            {"detail": "Carga masiva exitosa"},
+            status=status.HTTP_201_CREATED,
+        )
+
+    def read_excel(self, excel_file) -> pd.DataFrame:
+        """
+        Reads an Excel file containing artifact data.
+
+        Args:
+            excel_file: The Excel file to be read.
+
+        Returns:
+            DataFrame: A Pandas DataFrame containing the data from the Excel file
+        """
+        excel = pd.read_excel(excel_file, engine="openpyxl", header=0)
+        return excel
+
+    def validate_data(self, data: pd.DataFrame) -> tuple[bool, list[str]]:
+        """
+        Validates the data read from the Excel file.
+
+        Args:
+            data: The data read from the Excel file.
+
+        Returns:
+            bool: A boolean indicating whether the data is valid.
+            list[str]: A list of error messages.
+        """
+        valid = True
+        errors = []
+        #chequeamos que tenga 5 columnas sin nulls
+        if data.shape[1] != 5:
+            valid = False
+            errors.append("El archivo Excel debe tener 5 columnas: id o nombre, descripción, forma, cultura, etiquetas")
+        
+        for index, row in data.iterrows():
+            # chequeamos que no haya filas con nulls
+            if row.isnull().values.any():
+                valid = False
+                errors.append(f"La fila {index+2} tiene valores nulos")
+                continue
+            #chequeamos que la columna de cultura tenga solo culturas existentes
+            if not Culture.objects.filter(name=row.iloc[3]).exists():
+                valid = False
+                errors.append(f"La fila {index+2} tiene una cultura inexistente: {row.iloc[3]}")
+            #chequeamos que la columna de tags tenga solo tags existentes
+            tags = row.iloc[4].split(",")
+            for tag in tags:
+                if not Tag.objects.filter(name=tag).exists():
+                    valid = False
+                    errors.append(f"La fila {index+2} tiene una etiqueta inexistente: {tag}")
+            #chequeamos que la columna de forma tenga solo formas existentes
+            if not Shape.objects.filter(name=row.iloc[2]).exists():
+                valid = False
+                errors.append(f"La fila {index+2} tiene una forma inexistente: {row.iloc[2]}")
+        return valid, errors 
+
+    def list_files(self, path: str) -> list:
+        """
+        Lists files in a directory and its subdirectories.
+
+        Args:
+        path: The path to the directory.
+
+        Returns:
+        list: A list of files in the directory and its subdirectories.
+        """
+        file_list = []
+        if os.path.isdir(path):
+            for entry in os.listdir(path):
+                full_path = os.path.join(path, entry)
+                if os.path.isdir(full_path):
+                    file_list.extend(self.list_files(full_path))
+                elif os.path.isfile(full_path):
+                    file_list.append(full_path)
+        return file_list
+
+    def validate_files(self, data: pd.DataFrame, files: list) -> tuple[bool, list[str], list]:
+        """
+        Validates the files in the ZIP file based on the data from the Excel file.
+
+        Args:
+            data: The data from the Excel file.
+            files: The files in the ZIP file.
+
+        Returns:
+            bool: A boolean indicating whether the files are valid.
+            list: A list of error messages.
+            list: A list of dictionaries containing the data for the artifacts and their files.
+        """
+        valid = True
+        errors = []
+        files_filtered = files
+        data_with_files = []
+        pattern = lambda id: re.compile(rf"(^.*[\/\\]+0*{re.escape(id)}[.\,/_\\-]+.*$)")
+        for index, row in data.iterrows():
+            id = str(row.iloc[0])
+            files_row = [file for file in files_filtered if pattern(id).search(file)]
+            if len(files_row) == 0:
+                valid = False
+                errors.append(f"La pieza {id} no tiene archivos asociados")
+                continue
+            else:
+                thumbnail = [file for file in files_row if "thumbnail" in file]
+                if thumbnail == []:
+                    valid = False
+                    errors.append(f"La pieza {id} no tiene thumbnail")
+                elif len(thumbnail) > 1:
+                    valid = False
+                    errors.append(f"La pieza {id} tiene más de un thumbnail: {thumbnail}")
+                model_files = [file for file in files_row if "obj" in file]
+                obj = [file for file in model_files if file.endswith(".obj")]
+                mtl = [file for file in model_files if file.endswith(".mtl")]
+                jpg = [file for file in model_files if file.endswith(".jpg")]
+                images = [file for file in files_row if (("jpg" in file) or ("png" in file))
+                           and file not in thumbnail and file not in model_files]
+                if len(images) == 0 and (len(obj) == 0 or len(mtl) == 0 or len(jpg) == 0):
+                    valid = False
+                    if len(obj) == 0:
+                        errors.append(f"La pieza {id} no tiene archivo .obj")
+                    if len(mtl) == 0:
+                        errors.append(f"La pieza {id} no tiene archivo .mtl")
+                    if len(jpg) == 0:
+                        errors.append(f"La pieza {id} no tiene archivo .jpg")
+                    if len(images) == 0:
+                        errors.append(f"La pieza {id} no tiene imágenes ni modelo")
+                else:
+                    data_with_files.append({
+                        "description": row.iloc[1],"shape": row.iloc[2], "culture": row.iloc[3], "tags": row.iloc[4].split(","), "file_thumbnail": thumbnail[0], "files_model": model_files, "files_images": images})
+                files_filtered = [file for file in files_filtered if file not in files_row]
+        return valid, errors, data_with_files
+
+    def delete_files(self, path: str):
+        """
+        Deletes files in a directory and its subdirectories.
+
+        Args:
+            path: The path to the directory.
+        """
+        try:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+                logger.info(f"Deleted directory: {path}")
+            else:
+                os.remove(path)
+                logger.info(f"Deleted file: {path}")
+        except Exception as e:
+            logger.error(f"Error al eliminar archivos: {e}")
 
 
 class InstitutionAPIView(generics.ListCreateAPIView):
