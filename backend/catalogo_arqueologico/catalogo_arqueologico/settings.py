@@ -101,15 +101,24 @@ REST_FRAMEWORK = {
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+'''
 DATABASES = {
-    "default": {
+    default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+'''
+
+DATABASES = {
+        "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": env.str("POSTGRES_DB"),
         "USER": env.str("POSTGRES_USER"),
         "PASSWORD": env.str("POSTGRES_PASSWORD"),
         "HOST": env.str("DB_HOST"),
         "PORT": env.int("DB_PORT"),
-    }
+        }
 }
 
 
@@ -169,7 +178,7 @@ REST_FRAMEWORK = {
 }
 
 # Paths of the different types of files to be imported
-DATA_ROOT = "/data/"
+DATA_ROOT = "../../data/"
 CULTURE_CSV_PATH = os.path.join(DATA_ROOT, "coleccion-cultura.csv")
 MODEL_FOLDER_PATH = os.path.join(DATA_ROOT, "complete-dataset/")
 SHAPE_FOLDER_PATH = os.path.join(DATA_ROOT, "clasificacion-forma/")

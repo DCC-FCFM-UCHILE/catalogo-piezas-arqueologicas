@@ -35,7 +35,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--column",
             type=int,
-            default=3,
+            default=1,
             help="The column number (zero-based) containing the institution name. Default is 3.",
         )
 
