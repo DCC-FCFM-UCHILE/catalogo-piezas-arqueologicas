@@ -40,6 +40,10 @@ const BulkLoading = () => {
     const { addAlert } = useSnackBars();
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState(false);
+    const [errorMessages, setErrorMessages] = useState({
+        detail: "",
+        errores: [],
+    });
     const [newObjectAttributes, setNewObjectAttributes] = useState({
         excel: {},
         zip: {},
@@ -62,7 +66,14 @@ const BulkLoading = () => {
             if (response.ok) {
                 addAlert("Carga masiva exitosa");
             } else {
-                addAlert("Error en la carga masiva");
+                setErrors(true);
+                response.json().then((data) => {
+                    console.log(data);
+                    setErrorMessages({
+                        detail: data.detail,
+                        errores: data.errores,
+                    });
+                });
             }
         })
         .catch((error) => {
@@ -145,6 +156,30 @@ const BulkLoading = () => {
                     </LoadingText>
                 </ModalBox>
             </Modal>
+            <Modal open={errors}>
+                <ErrorBox>
+                    <Typography variant="h6">
+                        {errorMessages.detail}
+                    </Typography>
+                    {errorMessages.errores.map((error, index) => (
+                        <ErrorText key={index} variant="p">
+                            {error}
+                        </ErrorText>
+                    ))}
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => {
+                            setErrors(false);
+                            setErrorMessages({
+                                detail: "",
+                                errores: [],
+                            })}}
+                    >
+                        Cerrar
+                    </Button>
+                </ErrorBox>
+            </Modal>
         </FormContainer>
     );
 };
@@ -183,10 +218,51 @@ const ModalBox = styled(Box)(({ theme }) => ({
     transform: "translate(-50%, -50%)",
 }));
 
+const ErrorBox = styled(Box)(({ theme }) => ({
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: "2rem",
+    borderRadius: "10px",
+    boxShadow: theme.shadows[5],
+    width: "400px", // Ajustar el tamaño del modal
+    height: "80vh", // Ajustar la altura
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    overflowY: "auto",
+
+    // Estilos para la barra de desplazamiento
+    "&::-webkit-scrollbar": {
+        width: "8px", // Ancho de la barra de desplazamiento
+    },
+    "&::-webkit-scrollbar-track": {
+        background: "#f1f1f1", // Color del fondo de la pista
+        borderRadius: "10px", // Opcional para darle un diseño más redondeado
+    },
+    "&::-webkit-scrollbar-thumb": {
+        backgroundColor: "#888", // Color de la barra de desplazamiento
+        borderRadius: "10px", // Opcional para una barra redondeada
+    },
+    "&::-webkit-scrollbar-thumb:hover": {
+        background: "#555", // Color de la barra al hacer hover
+    }
+}));
+
 const LoadingText = styled(Typography)({
     marginTop: "3rem",
     fontSize: "1.2rem",
     textAlign: "center",
+});
+
+const ErrorText = styled(Typography)({
+    fontSize: "1rem",
+    textAlign: "justify",
+    width: "100%",
+    marginTop: "0.1rem",
+    marginBottom: "0.1rem",
 });
 
 export default BulkLoading;
