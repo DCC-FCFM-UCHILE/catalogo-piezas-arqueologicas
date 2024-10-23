@@ -1017,7 +1017,7 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                         errors.append(f"La pieza {id} no tiene archivo .jpg")
                     if len(images) == 0:
                         errors.append(f"La pieza {id} no tiene imágenes ni modelo")
-                else:
+                if valid:
                     data_with_files.append({
                         "description": row.iloc[1],"shape": row.iloc[2], "culture": row.iloc[3], "tags": row.iloc[4].split(","), "file_thumbnail": thumbnail[0], "files_model": model_files, "files_images": images})
                 files_filtered = [file for file in files_filtered if file not in files_row]
