@@ -101,15 +101,16 @@ REST_FRAMEWORK = {
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-'''
+
 DATABASES = {
-    default': {
+    'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-'''
 
+
+'''
 DATABASES = {
         "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -120,7 +121,7 @@ DATABASES = {
         "PORT": env.int("DB_PORT"),
         }
 }
-
+'''
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
