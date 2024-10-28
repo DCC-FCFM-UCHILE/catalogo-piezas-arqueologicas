@@ -17,6 +17,12 @@ import math
 import zipfile
 import pandas as pd
 import time
+import threading
+import numpy as np
+import cv2
+from scipy.spatial import distance
+from ast import literal_eval
+import json
 import re
 import shutil
 from io import BytesIO
@@ -39,6 +45,7 @@ from .serializers import (
     ShapeSerializer,
     TagSerializer,
     CultureSerializer,
+    DescriptorArtifactSerializer
 )
 from .models import (
     Artifact,
@@ -723,6 +730,195 @@ class BulkLoadingAPIView(generics.GenericAPIView):
     permission_classes = [
         permissions.IsAuthenticated & (IsFuncionarioPermission | IsAdminPermission)
     ]
+    temp_dir = ""
+
+
+    def put(self, request, *args, **kwargs):
+        """
+        Handles PUT requests.
+
+        It bulk loads artifacts and returns a response containing the serialized
+        data for the created artifacts.
+
+        Args:
+            request: The HTTP request object.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            Response: Django REST Framework's Response object containing serialized
+                data for the created artifacts.
+        """
+        #falta implementar
+        matches = request.data.get("posible_matches")
+        temp = request.data.get("temp_dir")
+        self.temp_dir = settings.MEDIA_ROOT+"temp/"+temp
+        for match in matches:
+            try:
+                print(match)
+                new_artifact = match["new_artifact"]
+                match_artifact = match["match_artifact"]
+                print(new_artifact)
+                print(match_artifact)
+                status_match = new_artifact["status"]
+                if status_match == "replace":
+                    print("Reemplazar")
+                    #reemplazar la pieza conid match_artifact con la info de new_artifact
+                    #buscar la pieza a reemplazar
+                    artifact = Artifact.objects.get(id=match_artifact)
+                    #buscar etiquetas
+                    tags_instances = []
+                    for tag in new_artifact["tags"]:
+                        tag_instance = Tag.objects.get(name=tag)
+                        tags_instances.append(tag_instance)
+
+                    #buscar la cultura
+                    culture_instance = Culture.objects.get(name=new_artifact["culture"])
+
+                    #buscar la forma
+                    shape_instance = Shape.objects.get(name=new_artifact["shape"])
+
+                    #descripción
+                    description = new_artifact["description"]
+
+                    #buscar algun archivo de thumbnail
+                    thumbnail = new_artifact["file_thumbnail"]
+                    thumbnail_path = os.path.normpath(self.temp_dir + thumbnail)
+                    with open(thumbnail_path, "rb") as f:
+                        thumbnail_file = File(f, name=thumbnail)
+                        thumbnail_instance = Thumbnail.objects.create(path=thumbnail_file)
+
+                    #buscar los archivos de modelo
+                    models = new_artifact["files_model"]
+                    texture_file = [file for file in models if file.endswith(".jpg")]
+                    object_file = [file for file in models if file.endswith(".obj")]
+                    material_file = [file for file in models if file.endswith(".mtl")]
+                    if texture_file != [] and object_file != [] and material_file != []:
+                        texture_path = os.path.normpath(self.temp_dir + texture_file[0])
+                        object_path = os.path.normpath(self.temp_dir + object_file[0])
+                        material_path = os.path.normpath(self.temp_dir + material_file[0])
+                        with open(texture_path, "rb") as f:
+                            texture_file = File(f, name=texture_file[0])
+                            with open(object_path, "rb") as f:
+                                object_file = File(f, name=object_file[0])
+                                with open(material_path, "rb") as f:
+                                    material_file = File(f, name=material_file[0])
+                                    model, created = Model.objects.get_or_create(
+                                        texture=texture_file,
+                                        object=object_file,
+                                        material=material_file,
+                                    )
+                        if created:
+                            logger.info(f"Model created: {model.texture}, {model.object}, {model.material}")
+                        else:
+                            logger.info(f"Model updated: {model.texture}, {model.object}, {model.material}")
+                    else:
+                        model = None
+                    # crear la pieza
+                    artifact.description = description
+                    artifact.id_thumbnail = thumbnail_instance
+                    artifact.id_model = model
+                    artifact.id_shape = shape_instance
+                    artifact.id_culture = culture_instance
+                    artifact.save()
+                    # borramos las etiquetas anteriores
+                    artifact.id_tags.clear()
+                    for tag_instance in tags_instances:
+                        artifact.id_tags.add(tag_instance)
+
+                    # borramos las imagenes anteriores
+                    images = Image.objects.filter(id_artifact=artifact)
+                    for image in images:
+                        image.delete()
+                    #imagenes
+                    images = new_artifact["files_images"]
+                    images_instances = []
+                    for image in images:
+                        image_path = os.path.normpath(self.temp_dir + image)
+                        with open(image_path, "rb") as f:
+                            image_file = File(f, name=image)
+                            image_instance = Image.objects.create(path=image_file, id_artifact=artifact)
+                            images_instances.append(image_instance)
+                            
+                
+                elif status_match == "keep":
+                    print("Mantener")
+                elif status_match == "new":
+                    print("Nuevo")
+                    #crear la pieza con la info de new_artifact
+                    #buscar etiquetas
+                    tags_instances = []
+                    for tag in new_artifact["tags"]:
+                        tag_instance = Tag.objects.get(name=tag)
+                        tags_instances.append(tag_instance)
+
+                    #buscar la cultura
+                    culture_instance = Culture.objects.get(name=new_artifact["culture"])
+
+                    #buscar la forma
+                    shape_instance = Shape.objects.get(name=new_artifact["shape"])
+
+                    #descripción
+                    description = new_artifact["description"]
+
+                    #buscar algun archivo de thumbnail
+                    thumbnail = new_artifact["file_thumbnail"]
+                    thumbnail_path = os.path.normpath(self.temp_dir + thumbnail)
+                    with open(thumbnail_path, "rb") as f:
+                        thumbnail_file = File(f, name=thumbnail)
+                        thumbnail_instance = Thumbnail.objects.create(path=thumbnail_file)
+
+                    #buscar los archivos de modelo
+                    models = new_artifact["files_model"]
+                    texture_file = [file for file in models if file.endswith(".jpg")]
+                    object_file = [file for file in models if file.endswith(".obj")]
+                    material_file = [file for file in models if file.endswith(".mtl")]
+                    if texture_file != [] and object_file != [] and material_file != []:
+                        texture_path = os.path.normpath(self.temp_dir + texture_file[0])
+                        object_path = os.path.normpath(self.temp_dir + object_file[0])
+                        material_path = os.path.normpath(self.temp_dir + material_file[0])
+                        with open(texture_path, "rb") as f:
+                            texture_file = File(f, name=texture_file[0])
+                            with open(object_path, "rb") as f:
+                                object_file = File(f, name=object_file[0])
+                                with open(material_path, "rb") as f:
+                                    material_file = File(f, name=material_file[0])
+                                    model, created = Model.objects.get_or_create(
+                                        texture=texture_file,
+                                        object=object_file,
+                                        material=material_file,
+                                    )
+                        if created:
+                            logger.info(f"Model created: {model.texture}, {model.object}, {model.material}")
+                        else:
+                            logger.info(f"Model updated: {model.texture}, {model.object}, {model.material}")
+                    else:
+                        model = None
+                    # crear la pieza
+                    artifact = Artifact.objects.create(description=description, id_thumbnail=thumbnail_instance, id_model=model, id_shape=shape_instance, id_culture=culture_instance)
+                    for tag_instance in tags_instances:
+                        artifact.id_tags.add(tag_instance)
+                    #imagenes
+                    images = new_artifact["files_images"]
+                    images_instances = []
+                    for image in images:
+                        image_path = os.path.normpath(self.temp_dir + image)
+                        with open(image_path, "rb") as f:
+                            image_file = File(f, name=image)
+                            image_instance = Image.objects.create(path=image_file, id_artifact=artifact)
+                            images_instances.append(image_instance)
+
+            except Exception as e:
+                self.delete_files(self.temp_dir)
+                return Response(
+                    {"detail": f"Error al cargar las piezas: {e}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+        self.delete_files(self.temp_dir)
+        return Response(
+            {"detail": "Piezas actualizadas exitosamente"},
+            status=status.HTTP_200_OK,
+        )
 
     def post(self, request, *args, **kwargs):
         """
@@ -784,6 +980,7 @@ class BulkLoadingAPIView(generics.GenericAPIView):
         
         # Unzip the ZIP file and put the files in a temporary folder
         temp_dir = settings.MEDIA_ROOT+"temp/"+str(hash(zip_file.name+str(time.time())))
+        self.temp_dir = temp_dir
         try:
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
                 zip_ref.extractall(temp_dir)
@@ -806,9 +1003,24 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                 {"detail": "Error al validar los archivos", "errores": errors},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        #obtenemos los descriptores de las piezas existentes para comparar
+        descriptores, ids = self.get_existing_descriptors()
+
+        posible_matches = []
+        count = 0
         # Iterate over the artifacts and create or update them
         for data in data_with_files:
+            desc = [data["thumbnail_desc"]]
+            desc.extend(data["images_desc"])
+            matriz = distance.cdist(descriptores, desc, 'cityblock')
+            min_dist = np.min(matriz)
+            min_row, min_col = np.unravel_index(np.argmin(matriz), matriz.shape)
+            print(f"Minimo: {min_dist}, en la fila {min_row} y columna {min_col}, correspondiente a la pieza {ids[min_row]} con el artefacto {data['id']}")
+            if min_dist < 0.1:
+                posible_matches.append({"new_artifact": data, "match_artifact": ids[min_row],})
+                continue
             try:
+                count += 1
                 #buscar etiquetas
                 tags_instances = []
                 for tag in data["tags"]:
@@ -886,14 +1098,22 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
-        # Delete the temporary folder and its contents
-        self.delete_files(temp_dir)
+        # Delete the temporary folder and its contents after 1 hour
+        delete_thread = threading.Thread(target=self.delete_files_delay, args=(temp_dir, 3600))
+        delete_thread.start()
 
-        
+        #devolvemos solo el hash del directorio temporal
+        temp = temp_dir.split("/")[-1]
         return Response(
-            {"detail": "Carga masiva exitosa"},
+            {"detail": f"Se han cargado exitosamente {count} piezas", "posible_matches": posible_matches, "temp_dir": temp},
             status=status.HTTP_201_CREATED,
         )
+
+    def delete_files_delay(self, temp_dir, delay):
+        print("Deleting files in", delay, "seconds")
+        time.sleep(delay)
+        self.delete_files(temp_dir)
+        print("Files deleted")
 
     def read_excel(self, excel_file) -> pd.DataFrame:
         """
@@ -1018,8 +1238,9 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                     if len(images) == 0:
                         errors.append(f"La pieza {id} no tiene imágenes ni modelo")
                 if valid:
-                    data_with_files.append({
-                        "description": row.iloc[1],"shape": row.iloc[2], "culture": row.iloc[3], "tags": row.iloc[4].split(","), "file_thumbnail": thumbnail[0], "files_model": model_files, "files_images": images})
+                    thumbnail_desc = self.get_descriptor(thumbnail[0])
+                    images_desc = [self.get_descriptor(image) for image in images]
+                    data_with_files.append({"id": row.iloc[0], "description": row.iloc[1],"shape": row.iloc[2], "culture": row.iloc[3], "tags": row.iloc[4].split(","), "file_thumbnail": thumbnail[0], "files_model": model_files, "files_images": images, "thumbnail_desc": thumbnail_desc, "images_desc": images_desc})
                 files_filtered = [file for file in files_filtered if file not in files_row]
         return valid, errors, data_with_files
 
@@ -1040,6 +1261,68 @@ class BulkLoadingAPIView(generics.GenericAPIView):
         except Exception as e:
             logger.error(f"Error al eliminar archivos: {e}")
 
+    def get_existing_descriptors(self):
+        """
+        Retrieve existing descriptors from the database using DescriptorArtifactSerializer.
+
+        Returns:
+            tuple: A tuple containing two lists: one for descriptors and one for IDs.
+        """
+        artifacts = Artifact.objects.all()  # Obtén todos los artefactos
+        serializer = DescriptorArtifactSerializer(artifacts, many=True)  # Serializa los artefactos
+
+        # Aquí accedemos a los datos como una lista de diccionarios devueltos por to_representation
+        descriptors = []
+        ids = []
+        
+        for item in serializer.data:
+            print(item["ids"])
+            descriptors_str = item["descriptors"]
+            for descriptor_str in descriptors_str:
+                if isinstance(descriptor_str, str):
+                    try:
+                        descriptors_list = literal_eval(descriptor_str)
+                    except (ValueError, SyntaxError):
+                        descriptors_list = []
+                else:
+                    descriptors_list = descriptor_str
+
+                descriptor_array = np.array(descriptors_list)
+                descriptors.append(descriptor_array)
+            ids.extend(item["ids"])
+            print(f"Descriptor: {len(descriptors)}, IDs: {len(ids)}")
+        return descriptors, ids
+
+    def get_descriptor(self, path: str):
+        """
+        Get the descriptor of a file.
+        """
+        try:
+            num_zonas_x = 4
+            num_zonas_y = 4
+            num_bins_por_zona = 8
+            image = cv2.imread(os.path.normpath(self.temp_dir + path), cv2.IMREAD_GRAYSCALE)
+            img_eq = cv2.equalizeHist(image)
+            descriptor = []
+            for j in range(num_zonas_y):
+                desde_y = int(img_eq.shape[0] / num_zonas_y * j)
+                hasta_y = int(img_eq.shape[0] / num_zonas_y * (j + 1))
+                for i in range(num_zonas_x):
+                    desde_x = int(img_eq.shape[1] / num_zonas_x * i)
+                    hasta_x = int(img_eq.shape[1] / num_zonas_x * (i + 1))
+                    # recortar zona de la img
+                    zona = img_eq[desde_y:hasta_y, desde_x:hasta_x]
+                    # histograma de los pixeles de la zona
+                    histograma, limites = np.histogram(zona, bins=num_bins_por_zona, range=(0, 255))
+                    # normalizar histograma (bins suman 1)
+                    histograma = histograma / np.sum(histograma)
+                    # agregar descriptor de la zona al descriptor global
+                    descriptor.extend(histograma)
+            return np.array(descriptor)
+        except Exception as e:
+            logger.error(f"Error al obtener descriptor: {e}")
+            return []
+        
 
 class InstitutionAPIView(generics.ListCreateAPIView):
     """
