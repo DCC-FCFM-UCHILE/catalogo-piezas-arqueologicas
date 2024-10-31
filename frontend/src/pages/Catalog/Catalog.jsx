@@ -1,4 +1,5 @@
-import React from "react";
+import {React,useState} from "react";
+
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -15,7 +16,7 @@ import CatalogFilter from "./components/CatalogFilter";
 import { API_URLS } from "../../api";
 import { useToken } from "../../hooks/useToken";
 import useFetchItems from "../../hooks/useFetchItems";
-
+import {useSelection} from "../../selectionContext";
 
 /**
  * The Catalog component displays a catalog of artifacts with pagination and filtering options.
@@ -28,6 +29,20 @@ const Catalog = () => {
   const { token } = useToken();
   const loggedIn = !!token;
 
+  // implement "selecion mode" and a select artifact list to download many artifacts 
+  const [isSelecionMode, setIsSelectionMode] = useState(false);
+  //const [selectedArtifacts, setSelectArtifacts] = useState([]);
+  const { selectedArtifacts, toggleSelection,setEmptyList } = useSelection();
+  //function to set the selection mode 
+  const changeSelectionMode = () =>{
+    console.log(isSelecionMode)
+    setIsSelectionMode(!isSelecionMode)
+    setEmptyList();
+  }
+  const handleSelectArtifact = (artifact) => {
+    
+    toggleSelection(artifact);
+  };
  // Custom hook to fetch items (artifacts) from the API with pagination and filtering
   const {
     items: artifactList,
@@ -49,6 +64,9 @@ const Catalog = () => {
 
   return (
     <Container>
+      <Button variant="outlined" color="secondary" onClick={changeSelectionMode}>
+            Selección Descarga Artefactos
+          </Button>
       {/* Title of the catalog */}
       <CustomTypography variant="h1">Catálogo</CustomTypography>
       {/* Component for filtering artifacts */}
@@ -83,7 +101,12 @@ const Catalog = () => {
           <Grid container spacing={2}>
             {artifactList.map((artifact) => (
               <Grid item xs={12} sm={6} md={4} key={artifact.id}>
-                <ArtifactCard artifact={artifact} />
+                <ArtifactCard 
+                artifact={artifact}
+                isSelectionMode={isSelecionMode}
+                onSelectArtifact={handleSelectArtifact}
+                selected={selectedArtifacts.some(selected => selected.id === artifact.id)}
+                />
               </Grid>
             ))}
           </Grid>

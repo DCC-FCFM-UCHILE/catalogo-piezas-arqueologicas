@@ -380,7 +380,6 @@ class CatalogAPIView(generics.ListAPIView):
             "shapes": list(available_shapes),
             "tags": list(available_tags),
         }
-        print(available_filters)
         return available_filters
 
     def get_serializer_context(self):

@@ -8,17 +8,21 @@ import {
   Typography,
   Box,
   Tooltip,
+  Checkbox 
 } from "@mui/material";
-import { Category, Diversity3 } from "@mui/icons-material";
+import { Category, Diversity3,CheckCircle } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 
 /**
  * The ArtifactCard component represents a card displaying summarized information about an artifact.
  * It includes artifact metadata like shape, culture, tags, and description, with optional image preview.
  * @param {object} artifact - The artifact object containing id, attributes, and thumbnail information.
+ * @param {boolean} isSelecionMode - this variable tell us if the selectionMode is activate or not. 
+ * @param {function} onSelectArtifact - Function to add the artifact to the list of selectedArtifacts
+ * @param {boolean} selected // This variable tells us if the artifact is already selected or not, indicating if the checkbox is marked.
  * @returns {JSX.Element} Component for displaying an artifact card.
  */
-const ArtifactCard = ({ artifact }) => {
+const ArtifactCard = ({ artifact, isSelectionMode,onSelectArtifact,selected}) => {
   const navigate = useNavigate();
   const { id, attributes, thumbnail: previewPath } = artifact;
   const { shape, tags, culture, description } = attributes;
@@ -39,7 +43,21 @@ const ArtifactCard = ({ artifact }) => {
   };
 
   return (
-    <Card>
+    <Card sx={{ position: "relative", border:  "1px solid grey" }}>
+      {/* if button is in selection mode */}
+      {isSelectionMode &&  ( 
+        <Checkbox 
+          sx={{ position: "absolute", top: 8, left: 8, color:  "grey" }}
+          checked={selected}
+          onClick={(e) => {
+            e.stopPropagation(); 
+            onSelectArtifact(artifact);
+          }}
+        >
+          <CheckCircle />
+        </Checkbox >
+      )}
+
       {/* Displaying preview image or default image if previewPath is not available */}
       {previewPath ? (
         <CustomCardMedia
