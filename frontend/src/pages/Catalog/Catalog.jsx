@@ -1,4 +1,5 @@
-import {React,useState} from "react";
+import React, { useState } from "react";
+
 
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -8,6 +9,7 @@ import {
   Grid,
   Typography,
   Skeleton,
+  IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import ArtifactCard from "./components/ArtifactCard";
@@ -17,6 +19,8 @@ import { API_URLS } from "../../api";
 import { useToken } from "../../hooks/useToken";
 import useFetchItems from "../../hooks/useFetchItems";
 import {useSelection} from "../../selectionContext";
+import RequestDetails from "./components/requestDetails"; 
+import CloseIcon from '@mui/icons-material/Close'
 
 /**
  * The Catalog component displays a catalog of artifacts with pagination and filtering options.
@@ -30,17 +34,24 @@ const Catalog = () => {
   const loggedIn = !!token;
 
   // implement "selecion mode" and a select artifact list to download many artifacts 
-  const [isSelecionMode, setIsSelectionMode] = useState(false);
-  //const [selectedArtifacts, setSelectArtifacts] = useState([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const { selectedArtifacts, toggleSelection,setEmptyList } = useSelection();
+  // to manage the state of the download request details 
+  const [isDetailsOpen,setDetailsOpen] = useState(false);
+
   //function to set the selection mode 
   const changeSelectionMode = () =>{
-    console.log(isSelecionMode)
-    setIsSelectionMode(!isSelecionMode)
+    console.log(isSelectionMode)
+    if(isSelectionMode===true){
+      changeDetailsOpen();
+    }
+    setIsSelectionMode(!isSelectionMode)
     setEmptyList();
   }
-  const handleSelectArtifact = (artifact) => {
-    
+  const changeDetailsOpen = () =>{
+    setDetailsOpen(!isDetailsOpen)
+  }
+  const handleSelectArtifact = (artifact) => { 
     toggleSelection(artifact);
   };
  // Custom hook to fetch items (artifacts) from the API with pagination and filtering
@@ -53,20 +64,27 @@ const Catalog = () => {
     setPagination,
     options
   } = useFetchItems(API_URLS.ALL_ARTIFACTS);
-
-
+  
   /**
    * Handles redirection to the add artifact page.
    */
   const handleRedirect = () => {
     navigate("/catalog/new", { state: { from: location } });
   };
+  
+  const handleRequestDownload = () => {
+    console.log("Solicitud de descarga enviada para:", selectedArtifacts);
+    // Aquí puedes agregar la lógica para enviar la solicitud a un API o backend
+  };
 
   return (
     <Container>
       <Button variant="outlined" color="secondary" onClick={changeSelectionMode}>
             Selección Descarga Artefactos
-          </Button>
+      </Button>
+      {isSelectionMode && <Button variant="outlined" color="secondary" onClick={changeDetailsOpen}>
+          Ver Preselección
+      </Button>}
       {/* Title of the catalog */}
       <CustomTypography variant="h1">Catálogo</CustomTypography>
       {/* Component for filtering artifacts */}
@@ -103,7 +121,7 @@ const Catalog = () => {
               <Grid item xs={12} sm={6} md={4} key={artifact.id}>
                 <ArtifactCard 
                 artifact={artifact}
-                isSelectionMode={isSelecionMode}
+                isSelectionMode={isSelectionMode}
                 onSelectArtifact={handleSelectArtifact}
                 selected={selectedArtifacts.some(selected => selected.id === artifact.id)}
                 />
@@ -123,6 +141,15 @@ const Catalog = () => {
           </Typography>
         </CustomBox>
       )}
+
+      {/* download request */}
+      
+      <RequestDetailsPanel open={isDetailsOpen}>
+        <IconButton onClick={()=> setDetailsOpen(false)} sx={{ position: 'absolute', top: 8, right: 8 }}>
+          <CloseIcon />
+        </IconButton>
+        <RequestDetails onRequestDownload={handleRequestDownload}></RequestDetails>
+      </RequestDetailsPanel> 
     </Container>
   );
 };
@@ -143,5 +170,18 @@ const CustomBox = styled(Grid)(({ theme }) => ({
   gap: theme.spacing(2),
   marginBottom: theme.spacing(3),
 }));
-
+//Custom the request details information 
+const RequestDetailsPanel = styled(Box)(({ theme, open }) => ({
+  position: "fixed",
+  top: 0,
+  right: 0,
+  height: "100%",
+  width: "300px",
+  backgroundColor: theme.palette.background.paper,
+  boxShadow: theme.shadows[5],
+  padding: theme.spacing(2),
+  transform: open ? "translateX(0)" : "translateX(100%)",
+  transition: "transform 0.3s ease",
+  zIndex: 1300,
+}));
 export default Catalog;
