@@ -35,25 +35,21 @@ const Catalog = () => {
 
   // implement "selecion mode" and a select artifact list to download many artifacts 
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const { selectedArtifacts, toggleSelection,setEmptyList } = useSelection();
+  const { selectedArtifacts, toggleSelection } = useSelection();
   // to manage the state of the download request details 
   const [isDetailsOpen,setDetailsOpen] = useState(false);
 
   //function to set the selection mode 
   const changeSelectionMode = () =>{
     console.log(isSelectionMode)
-    if(isSelectionMode===true){
+    if(isSelectionMode===true && isDetailsOpen===true){
       changeDetailsOpen();
     }
     setIsSelectionMode(!isSelectionMode)
-    setEmptyList();
   }
   const changeDetailsOpen = () =>{
     setDetailsOpen(!isDetailsOpen)
   }
-  const handleSelectArtifact = (artifact) => { 
-    toggleSelection(artifact);
-  };
  // Custom hook to fetch items (artifacts) from the API with pagination and filtering
   const {
     items: artifactList,
@@ -122,7 +118,7 @@ const Catalog = () => {
                 <ArtifactCard 
                 artifact={artifact}
                 isSelectionMode={isSelectionMode}
-                onSelectArtifact={handleSelectArtifact}
+                onSelectArtifact={toggleSelection}
                 selected={selectedArtifacts.some(selected => selected.id === artifact.id)}
                 />
               </Grid>

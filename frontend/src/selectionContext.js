@@ -31,6 +31,7 @@ export const SelectionProvider = ({ children }) => {
   };
   const setEmptyList = () =>{
     setSelectedArtifacts([]);
+    localStorage.removeItem('selectedArtifacts');
   }
   useEffect(() => {
     localStorage.setItem('selectedArtifacts', JSON.stringify(selectedArtifacts));
