@@ -492,7 +492,7 @@ class BulkDownloadingRequest(models.Model):
         related_name="institution_requester",
     )
     status = models.CharField(
-        max_length=10,
+        max_length=17,
         choices=STATUS_CHOICES,
         default='pending'
     )
@@ -525,7 +525,7 @@ class Request(models.Model):
         related_name="requests"
     )
     status = models.CharField(
-        max_length=17,
+        max_length=10,
         choices=STATUS_CHOICES,
         default='pending'
     )

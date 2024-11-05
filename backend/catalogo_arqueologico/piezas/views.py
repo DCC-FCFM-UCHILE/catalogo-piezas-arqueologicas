@@ -1086,8 +1086,52 @@ class InstitutionAPIView(generics.ListCreateAPIView):
         except Exception as e:
             logger.error(f"Could not retrieve institutions:{e}")
             return Response({"detail": f"Error al obtener instituciones"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+'''
+class ArtifactBulkDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Extraer datos del cuerpo de la solicitud
+        name = request.data.get("fullName")
+        rut = request.data.get("rut")
+        email = request.data.get("email")
+        institution_id = request.data.get("institution")
+        comments = request.data.get("comments")
+        artifact_ids = request.data.get("artifacts", [])
         
-'''
-class ArtifactBulkDetailAPIView():
-    pass 
-'''
+        # Validar que los campos obligatorios están presentes
+        if not all([name, rut, email, institution_id, artifact_ids]):
+            return Response({"detail": "Faltan datos requeridos en la solicitud."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener la institución o retornar error si no existe
+        institution = get_object_or_404(Institution, id=institution_id)
+        
+        # Crear la instancia de BulkDownloadingRequest
+        bulk_request = BulkDownloadingRequest.objects.create(
+            name=name,
+            rut=rut,
+            email=email,
+            comments=comments,
+            institution=institution,
+            is_registered=True,  # Puedes modificarlo según tus reglas
+            status="pending",
+            admin_comments=None  # Establecer admin_comments como nulo
+        )
+
+        # Crear una instancia de Request para cada ID de artefacto
+        for artifact_id in artifact_ids:
+            artifact = get_object_or_404(Artifact, id=artifact_id)
+            Request.objects.create(
+                artifact_request=bulk_request,
+                artifact=artifact,
+                status="pending"  # Status inicial como "pending"
+            )
+        
+        # Retornar una respuesta de éxito
+        return Response(
+            {"detail": "Solicitud de descarga registrada exitosamente."},
+            status=status.HTTP_201_CREATED
+        )
+'''       
+
