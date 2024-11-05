@@ -67,11 +67,6 @@ const Catalog = () => {
   const handleRedirect = () => {
     navigate("/catalog/new", { state: { from: location } });
   };
-  
-  const handleRequestDownload = () => {
-    console.log("Solicitud de descarga enviada para:", selectedArtifacts);
-    // Aquí puedes agregar la lógica para enviar la solicitud a un API o backend
-  };
 
   return (
     <Container>
@@ -144,7 +139,7 @@ const Catalog = () => {
         <IconButton onClick={()=> setDetailsOpen(false)} sx={{ position: 'absolute', top: 8, right: 8 }}>
           <CloseIcon />
         </IconButton>
-        <RequestDetails onRequestDownload={handleRequestDownload}></RequestDetails>
+        <RequestDetails></RequestDetails>
       </RequestDetailsPanel> 
     </Container>
   );

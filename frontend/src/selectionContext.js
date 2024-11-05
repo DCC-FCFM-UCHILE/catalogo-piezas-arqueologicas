@@ -33,9 +33,11 @@ export const SelectionProvider = ({ children }) => {
     setSelectedArtifacts([]);
     localStorage.removeItem('selectedArtifacts');
   }
+  /*
   useEffect(() => {
     localStorage.setItem('selectedArtifacts', JSON.stringify(selectedArtifacts));
   }, [selectedArtifacts]);
+  */
   useEffect(() => {
     console.log("selectedArtifacts ha cambiado:", selectedArtifacts);
   }, [selectedArtifacts]);
