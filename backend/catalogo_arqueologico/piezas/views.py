@@ -26,10 +26,12 @@ from rest_framework import permissions, generics, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+from rest_framework.views import APIView
 from django.db.models import Q
 from django.core.files import File
 from django.http import HttpResponse
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 from .serializers import (
     ArtifactRequesterSerializer,
     ArtifactSerializer,
@@ -51,6 +53,8 @@ from .models import (
     Culture,
     Model,
     Thumbnail,
+    BulkDownloadingRequest,
+    Request,
 )
 from .permissions import IsFuncionarioPermission, IsAdminPermission
 from .authentication import TokenAuthentication
@@ -1086,52 +1090,79 @@ class InstitutionAPIView(generics.ListCreateAPIView):
         except Exception as e:
             logger.error(f"Could not retrieve institutions:{e}")
             return Response({"detail": f"Error al obtener instituciones"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-'''
+
+
 class ArtifactBulkDetailAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    """
+    View to handle bulk download requests, allowing both authenticated and non-authenticated requests.
+    """
 
-    def post(self, request):
-        # Extraer datos del cuerpo de la solicitud
-        name = request.data.get("fullName")
-        rut = request.data.get("rut")
-        email = request.data.get("email")
-        institution_id = request.data.get("institution")
-        comments = request.data.get("comments")
-        artifact_ids = request.data.get("artifacts", [])
-        
-        # Validar que los campos obligatorios están presentes
-        if not all([name, rut, email, institution_id, artifact_ids]):
-            return Response({"detail": "Faltan datos requeridos en la solicitud."},
-                            status=status.HTTP_400_BAD_REQUEST)
-        
-        # Obtener la institución o retornar error si no existe
-        institution = get_object_or_404(Institution, id=institution_id)
-        
-        # Crear la instancia de BulkDownloadingRequest
-        bulk_request = BulkDownloadingRequest.objects.create(
-            name=name,
-            rut=rut,
-            email=email,
-            comments=comments,
-            institution=institution,
-            is_registered=True,  # Puedes modificarlo según tus reglas
-            status="pending",
-            admin_comments=None  # Establecer admin_comments como nulo
-        )
+    def post(self, request, *args, **kwargs):
+        """
+        Handles POST requests for bulk download requests, creating BulkDownloadingRequest and
+        individual Request records for each artifact ID provided.
+        """
+        # Verifica si el usuario no está autenticado y usa datos del formulario
+        if not request.user.is_authenticated:
+            # Extrae los datos del formulario
+            name = request.data.get("fullName")
+            rut = request.data.get("rut")
+            email = request.data.get("email")
+            institution_id = request.data.get("institution")
+            comments = request.data.get("comments")
+            artifact_ids = request.data.get("artifacts", [])
 
-        # Crear una instancia de Request para cada ID de artefacto
-        for artifact_id in artifact_ids:
-            artifact = get_object_or_404(Artifact, id=artifact_id)
-            Request.objects.create(
-                artifact_request=bulk_request,
-                artifact=artifact,
-                status="pending"  # Status inicial como "pending"
-            )
-        
-        # Retornar una respuesta de éxito
-        return Response(
-            {"detail": "Solicitud de descarga registrada exitosamente."},
-            status=status.HTTP_201_CREATED
-        )
-'''       
+            # Verifica que todos los campos necesarios estén presentes
+            if not all([name, rut, email, institution_id, artifact_ids]):
+                return Response(
+                    {"detail": "Faltan datos requeridos en la solicitud."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            try:
+                # Intenta obtener la institución
+                institution = get_object_or_404(Institution, id=institution_id)
+
+                # Crea el registro de BulkDownloadingRequest
+                bulk_request = BulkDownloadingRequest.objects.create(
+                    name=name,
+                    rut=rut,
+                    email=email,
+                    comments=comments,
+                    is_registered=False,
+                    institution=institution,
+                    status="pending",
+                    admin_comments=None  # Comentario de administrador en nulo por defecto
+                )
+                print("BulkDownloadingRequest creado:", bulk_request)
+                # Crea un Request para cada ID de artefacto
+                for artifact_id in artifact_ids:
+                    artifact = get_object_or_404(Artifact, id=artifact_id)
+                    print(f"Artifact encontrado: {artifact}")
+                    Request.objects.create(
+                        artifact_request=bulk_request,
+                        artifact=artifact,
+                        status="pending"
+                    )
+                
+                # Log para confirmación de creación exitosa
+                logger.info("Bulk download request created successfully for non-authenticated user.")
+
+                # Respuesta de éxito
+                return Response(
+                    {"detail": "Solicitud de descarga registrada exitosamente."},
+                    status=status.HTTP_201_CREATED
+                )
+
+            except Exception as e:
+                logger.error(f"Error al procesar la solicitud de descarga en masa: {e}")
+                return Response(
+                    {"detail": "Ocurrió un error al procesar la solicitud."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        else:
+            # Lógica para usuarios autenticados - por completar
+            pass
+      
 

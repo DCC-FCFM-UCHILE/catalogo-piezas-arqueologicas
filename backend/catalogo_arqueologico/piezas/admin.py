@@ -28,6 +28,8 @@ from .models import (
     Image,
     Institution,
     CustomUser,
+    BulkDownloadingRequest,
+    Request,
 )
 from .forms import CustomUserCreationForm, CustomUserChangeForm
 
@@ -185,3 +187,5 @@ admin.site.register(Thumbnail)
 admin.site.register(Image)
 admin.site.register(Institution)
 admin.site.register(ArtifactRequester)
+admin.site.register(BulkDownloadingRequest)
+admin.site.register(Request)

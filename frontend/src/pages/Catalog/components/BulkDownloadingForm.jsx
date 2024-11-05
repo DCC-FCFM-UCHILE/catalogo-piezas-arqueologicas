@@ -78,7 +78,7 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
       };
   
       //send the post to backend
-      const response = await fetch(`${API_URLS.REQUEST_DOWNLOAD}`, {
+      const response = await fetch(`${API_URLS.DETAILED_ARTIFACT}/bulkdownloading`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -94,7 +94,6 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
         addAlert(data.detail);
         return;
       }
-  
       // success alert
       addAlert("Solicitud enviada exitosamente. Recibirá un correo cuando la descarga esté lista.");
     } catch (error) {
@@ -105,11 +104,15 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
 // Handle form submission
     const handleSubmit = (event) => {
       event.preventDefault();
+      console.log('tratando de enviar formuilario')
       // Assuming formValues contains a 'rut' field that needs to be validated
+      
       if (!validateRut(formValues.rut)) {
         setRutError(true);
+        console.log('malo el rut')
         return; // Stop the form submission process
       }
+        
       // Reset RUT error if validation passes
       setRutError(false);
       // Proceed with download process
@@ -263,31 +266,34 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
     gap: theme.spacing(2),
   }));
 
+  
 /**
    * validateRut validates the format and checksum of a Chilean RUT.
    * @param {string} rutStr The RUT string to be validated.
    * @returns {boolean} True if the RUT is valid, false otherwise.
    */
-  const validateRut = (rutStr) => {
-    let rut = rutStr.replace(/\./g, "").replace(/-/g, ""); // Remove dots and dash from RUT to `let` for reassignment
-    rut = rut.split(""); // Correct splitting into an array of characters
-    if (rut.length !== 9) {
-      return false; // Return false if the length is not 9
-    }
-    const last = rut[8];
-    const inverse = rut.slice(0, 8).reverse();
-    let total = 0; // Initialize `total` with `let` to allow updates
-    for (let i = 0; i < inverse.length; i++) {
-      total += parseInt(inverse[i]) * ((i % 6) + 2);
-    }
-    const rest = 11 - (total % 11);
-    if (
-      (rest === 10 && (last === "K" || last === "k")) ||
-      rest === parseInt(last)
-    ) {
-      return true; // Assuming the validation logic should return true if conditions are met
-    }
-    return false; // Return false as default if conditions are not met
-  };
-
+const validateRut = (rutStr) => {
+  // Remove dots and dashes from the RUT
+  let rut = rutStr.replace(/\./g, "").replace(/-/g, "").toUpperCase(); // Normalize the RUT to uppercase and remove dots and dashes
+   // Check if the RUT has exactly 9 characters (8 digits + 1 verification digit)
+  if (rut.length !== 9) {
+    return false;
+  }
+  const rutBody = rut.slice(0, 8); // The first 8 digits
+  const rutDv = rut[8]; // The last character, which is the verification digit
+  // Calculate the verification digit using the RUT algorithm
+  let total = 0;
+  let factor = 2;
+  // Loop through the RUT from right to left to calculate the total
+  for (let i = rutBody.length - 1; i >= 0; i--) {
+    total += parseInt(rutBody[i]) * factor;
+    factor = factor === 7 ? 2 : factor + 1;
+  }
+  const rest = total % 11;
+  const calculatedDv = 11 - rest;
+   // Calculate the verification digit
+  const validDv = calculatedDv === 10 ? 'K' : calculatedDv === 11 ? '0' : calculatedDv.toString();
+  // Validate if the verification digit matches the entered one
+  return validDv === rutDv;
+};
   export default BulkDownloadArtifactForm;
