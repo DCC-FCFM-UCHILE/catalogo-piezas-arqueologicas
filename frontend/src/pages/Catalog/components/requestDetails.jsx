@@ -1,8 +1,8 @@
-import React from "react";
+import React ,{useEffect} from "react";
 import { Box, Typography, Button, List, ListItem, Divider, Container } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useSelection } from "../../../selectionContext";
-import DownloadArtifactForm from '../../ArtifactDetails/components/DownloadArtifactForm'
+import BulkDownloadArtifactForm from './BulkDownloadingForm'
 import DownloadArtifactButton from "../../ArtifactDetails/components/DownloadArtifactButton";
 import { API_URLS } from "../../../api";
 import { useToken } from "../../../hooks/useToken";
@@ -15,7 +15,9 @@ const RequestDetails = () => {
   const { selectedArtifacts, setEmptyList } = useSelection();
   const { token } = useToken();
   const loggedIn = !!token;
-
+  useEffect(() => {
+    console.log("selectedArtifacts ha cambiado:", selectedArtifacts);
+  }, [selectedArtifacts]);
   const onRequestDownload = async () => {
     try {
       // Configuración de la solicitud POST con el token y los IDs de los artefactos
@@ -92,15 +94,11 @@ const RequestDetails = () => {
             </Button>
           </HorizontalStack>
         ) : (
-          // Botón para solicitar datos si no está logeado
-          <Button>
-            hola
-          </Button>
-          /*
+          // request form if the person is not logged.
           <DownloadArtifactButton text={"Solicitar datos"}>
-            <DownloadArtifactForm artifactInfo={artifact} />
+            <BulkDownloadArtifactForm artifactInfoList={selectedArtifacts} />
           </DownloadArtifactButton>
-          */
+          
         )}
 
         {/* Botón para deshacer solicitud que siempre se muestra si hay elementos seleccionados */}
