@@ -1086,3 +1086,8 @@ class InstitutionAPIView(generics.ListCreateAPIView):
         except Exception as e:
             logger.error(f"Could not retrieve institutions:{e}")
             return Response({"detail": f"Error al obtener instituciones"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+'''
+class ArtifactBulkDetailAPIView():
+    pass 
+'''

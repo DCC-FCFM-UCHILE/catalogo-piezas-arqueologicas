@@ -468,13 +468,15 @@ class BulkDownloadingRequest(models.Model):
         comments (TextField): Optional comments from the requester.
         is_registered (BooleanField): Indicates if the requester is registered.
         institution (ForeignKey): Reference to the associated institution.
-        status (CharField): Status of the request (pending, accepted, rejected).
+        status (CharField): Status of the request (pending, accepted, rejected,partiallyaccepted,downloaded).
         admin_comments(TextField):Optional comments from the person who decline or accept the request.
     """
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('accepted', 'Accepted'),
-        ('rejected', 'Rejected')
+        ('rejected', 'Rejected'),
+        ('partiallyaccepted','Partially accepted'),
+        ('downloaded','Downloaded')
     ]
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=50)
@@ -505,7 +507,7 @@ class BulkDownloadingRequest(models.Model):
 
 class Request(models.Model):
     """
-    Represents a specific artifact that they want.
+    Represents a specific artifact for one bulkdownloadingrequest.
 
     Attributes:
         artifactRequest (ForeignKey): relaciona el artefacto con la peticion a la que pertenece
@@ -515,9 +517,7 @@ class Request(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('accepted', 'Accepted'),
-        ('rejected', 'Rejected'),
-        ('partiallyaccepted','Partially accepted'),
-        ('downloaded','Downloaded')
+        ('rejected', 'Rejected')
     ]
     artifact_request = models.ForeignKey(
         BulkDownloadingRequest, 
