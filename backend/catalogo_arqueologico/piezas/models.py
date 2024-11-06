@@ -492,7 +492,7 @@ class BulkDownloadingRequest(models.Model):
         related_name="institution_requester",
     )
     status = models.CharField(
-        max_length=10,
+        max_length=17,
         choices=STATUS_CHOICES,
         default='pending'
     )
@@ -504,6 +504,14 @@ class BulkDownloadingRequest(models.Model):
             str: Name of the requester.
         """
         return self.name
+    
+    def get_request_count(self):
+        """
+        Returns the number of artifacts requested in the bulk request.
+        Returns:
+            int: Number of artifacts requested.
+        """
+        return self.requests.count()
 
 class Request(models.Model):
     """
@@ -525,7 +533,7 @@ class Request(models.Model):
         related_name="requests"
     )
     status = models.CharField(
-        max_length=17,
+        max_length=10,
         choices=STATUS_CHOICES,
         default='pending'
     )

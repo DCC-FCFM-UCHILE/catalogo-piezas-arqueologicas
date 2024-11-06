@@ -50,7 +50,19 @@ const MenuBar = () => {
       state: { from: location },
     });
   }
-  
+
+/**
+ * Navigates to the download request page if not already on it.
+ */
+  const handleDownloadRequestClick = () => {
+    // If we are already in the download request page, do nothing
+    if (location.pathname === "/downloadrequest") {
+      return;
+    }
+    navigate("/downloadrequest", {
+      state: { from: location },
+    });
+  }
 /**
    * Navigates to the login page.
    */
@@ -98,6 +110,12 @@ const MenuBar = () => {
           {/* Conditional rendering based on user authentication */}
           {loggedIn && (
             <>
+            <Button
+              onClick={handleDownloadRequestClick}
+              color="inherit"
+              style={{ marginRight: 55 }}
+            > Solicitudes de descarga
+            </Button>
             <Button
               onClick={handleBulkLoadingClick}
               color="inherit"

@@ -39,6 +39,8 @@ from .serializers import (
     ShapeSerializer,
     TagSerializer,
     CultureSerializer,
+    BulkDownloadingRequestSerializer,
+    RequestSerializer
 )
 from .models import (
     Artifact,
@@ -51,6 +53,8 @@ from .models import (
     Culture,
     Model,
     Thumbnail,
+    BulkDownloadingRequest,
+    Request
 )
 from .permissions import IsFuncionarioPermission, IsAdminPermission
 from .authentication import TokenAuthentication
@@ -1088,7 +1092,72 @@ class InstitutionAPIView(generics.ListCreateAPIView):
             return Response({"detail": f"Error al obtener instituciones"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
+
+
 class RequestsAPIView(generics.ListCreateAPIView):
+    """
+    A view that provides a list of artifact requests.
+
+    It extends Django REST Framework's ListCreateAPIView.
+
+    Attributes:
+        queryset: Specifies the queryset that this view will use to retrieve
+            the ArtifactRequester objects. It retrieves all ArtifactRequester objects.
+        serializer_class: Specifies the serializer class that should be used
+            for serializing the ArtifactRequester objects.
+        pagination_class: Specifies the pagination class that should be used
+        permission_classes: Defines the list of permissions that apply to
+            this view. It is set to allow only authenticated users with the
+            role of 'Funcionario' or 'Administrador' to access this view.
+    """
+
+    queryset = BulkDownloadingRequest.objects.all().order_by("id")
+    serializer_class = BulkDownloadingRequestSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [
+        permissions.IsAuthenticated & (IsFuncionarioPermission | IsAdminPermission)
+    ]
 
     def get(self, request, *args, **kwargs):
-        return Response({"detail": "GET request received"}, status=status.HTTP_200_OK)
+        try:
+            requests = self.get_queryset()
+            request_serializer = BulkDownloadingRequestSerializer(requests, many=True)
+            return Response({"data": request_serializer.data}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Could not retrieve requests:{e}")
+            return Response({"detail": f"Error al obtener solicitudes"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class RequestDetailAPIView(generics.RetrieveUpdateAPIView):
+    """
+    API view for retrieving and updating the status of requests associated
+    with a specific BulkDownloadingRequest.
+    """
+    serializer_class = BulkDownloadingRequestSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [
+        permissions.IsAuthenticated & (IsFuncionarioPermission | IsAdminPermission)
+    ]
+
+    def get_queryset(self):
+        return BulkDownloadingRequest.objects.all()
+
+    def get(self, request, pk):
+        try:
+            bulk_request = self.get_queryset().get(pk=pk)
+            serializer = self.get_serializer(bulk_request)
+            requested = Request.objects.filter(artifact_request=serializer.data["id"])
+            requested = RequestSerializer(requested, many=True)
+            return Response({"data": serializer.data, "requested": requested.data}, status=status.HTTP_200_OK)
+        except BulkDownloadingRequest.DoesNotExist:
+            return Response({"error": "BulkDownloadingRequest not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Could not retrieve request {pk}: {e}")
+            return Response({"detail": f"Error al obtener solicitud"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+    def post(self, request, *args, **kwargs):
+        # Implementación de lógica para actualizar el status como antes
+        # Usando BulkDownloadingRequestSerializer para actualizar y devolver la data
+        return Response({"detail": "Not implemented"}, status=status.HTTP_501_NOT_IMPLEMENTED)
