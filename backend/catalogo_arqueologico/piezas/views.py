@@ -1205,4 +1205,41 @@ class RequestDownloadAPIView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, pk):
-        return Response({"detail": "Todavia no implementado"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+        try:
+            requests = Request.objects.filter(artifact_request_id=pk, status="accepted")
+            artifacts = [r.artifact for r in requests]
+            buffer = BytesIO()
+            print(artifacts)
+            with zipfile.ZipFile(buffer, "w") as zipf:
+                for artifact in artifacts:
+                    if artifact.id_thumbnail:
+                        zipf.write(
+                            artifact.id_thumbnail.path.path,
+                            f"thumbnail/{artifact.id_thumbnail.path}",
+                        )
+
+                    zipf.write(
+                        artifact.id_model.texture.path,
+                        f"model/{artifact.id_model.texture.name}",
+                    )
+                    zipf.write(
+                        artifact.id_model.object.path,
+                        f"model/{artifact.id_model.object.name}",
+                    )
+                    zipf.write(
+                        artifact.id_model.material.path,
+                        f"model/{artifact.id_model.material.name}",
+                    )
+
+                    images = Image.objects.filter(id_artifact=artifact.id)
+                    for image in images:
+                        zipf.write(image.path.path, f"model/{image.path}")
+        except Exception as e:
+            logger.error(f"Error al descargar solicitud: {e}")
+            return Response({"detail": "Error al descargar solicitud"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        buffer.seek(0)
+
+        response = HttpResponse(buffer, content_type="application/zip")
+        response["Content-Disposition"] = f"attachment; filename=request_{pk}.zip"
+        return response
+
