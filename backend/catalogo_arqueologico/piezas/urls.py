@@ -39,6 +39,7 @@ urlpatterns = [
     path("artifact/<int:pk>/download", views.ArtifactDownloadAPIView.as_view()),
     #path("artifact/list/<str:ids>/", views.ArtifactBulkDetailAPIView.as_view()),
     path("artifact/requests", views.RequestsAPIView.as_view()),
+    path("artifact/requests/notification", views.RequestsNotificationAPIView.as_view()),
     path("artifact/request/<int:pk>", views.RequestDetailAPIView.as_view()),
     path("artifact/<int:pk>/request/download", views.RequestDownloadAPIView.as_view()),
 ]

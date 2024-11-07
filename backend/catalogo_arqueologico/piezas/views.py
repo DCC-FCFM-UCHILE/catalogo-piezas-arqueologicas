@@ -1113,11 +1113,11 @@ class RequestsAPIView(generics.ListCreateAPIView):
             role of 'Funcionario' or 'Administrador' to access this view.
     """
 
-    queryset = BulkDownloadingRequest.objects.all().order_by("id")
+    queryset = BulkDownloadingRequest.objects.all().order_by("-id")
     serializer_class = BulkDownloadingRequestSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [
-        permissions.IsAuthenticated & (IsFuncionarioPermission | IsAdminPermission)
+        permissions.IsAuthenticated & IsAdminPermission
     ]
 
     def get(self, request, *args, **kwargs):
@@ -1139,7 +1139,7 @@ class RequestDetailAPIView(generics.RetrieveUpdateAPIView):
     serializer_class = BulkDownloadingRequestRequestSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [
-        permissions.IsAuthenticated & (IsFuncionarioPermission | IsAdminPermission)
+        permissions.IsAuthenticated & IsAdminPermission
     ]
 
     def get_queryset(self):
@@ -1243,3 +1243,23 @@ class RequestDownloadAPIView(generics.GenericAPIView):
         response["Content-Disposition"] = f"attachment; filename=request_{pk}.zip"
         return response
 
+class RequestsNotificationAPIView(generics.GenericAPIView):
+    """
+    API view for sending the number of pending BulkDownloadingRequest to the frontend 
+    """
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [
+        permissions.IsAuthenticated & IsAdminPermission
+    ]
+
+    def get(self, request):
+        """
+        Handles GET requests.
+        """
+        try:
+            requests = BulkDownloadingRequest.objects.filter(status="pending")
+            return Response({"data": len(requests)}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error al obtener solicitudes pendientes: {e}")
+            return Response({"detail": "Error al obtener solicitudes pendientes"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
