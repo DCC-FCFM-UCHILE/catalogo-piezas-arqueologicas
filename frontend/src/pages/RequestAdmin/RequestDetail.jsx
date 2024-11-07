@@ -7,6 +7,8 @@ import { styled } from "@mui/material";
 const RequestDetail = () => {
     const [request, setRequest] = useState({});
     const [requested, setRequested] = useState([]);
+    const [msg, setMsg] = useState("");
+    const [showModal, setShowModal] = useState(false);
     const { token } = useToken();
 
     useEffect(() => {
@@ -21,6 +23,7 @@ const RequestDetail = () => {
                 request.status = "rejected";
             }
         });
+        console.log(requested);
     }, [requested]);
 
     const fetchRequest = async (id) => {
@@ -36,7 +39,8 @@ const RequestDetail = () => {
         }
         const data = await response.json();
         setRequest(data.data);
-        setRequested(data.requested);
+        setRequested(data.data.requests);
+        console.log(data);
     }
 
     const handleStatusChange = (id, s) => {
@@ -49,6 +53,41 @@ const RequestDetail = () => {
             )
         );
     };
+
+    const handleAcceptAll = () => {
+        setRequested((prevRequests) =>
+            prevRequests.map((request) => ({ ...request, status: "accepted" }))
+        );
+    };
+
+    const handleSubmit = async () => {
+        console.log(requested);
+        const response = await fetch(`${API_URLS.DETAILED_ARTIFACT}/request/${request.id}`, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                requests: requested,
+                message: msg,
+            }),
+        });
+        if (!response.ok) {
+            console.error("Failed to update requests");
+            return;
+        }
+        const data = await response.json();
+        console.log(data);
+    }
+
+    const handleSubmitReject = async () => {
+        setRequested((prevRequests) =>
+            prevRequests.map((request) => ({ ...request, status: "rejected" }))
+        );
+        setShowModal(true);
+    }
+
     
     return (
         <div>
@@ -58,11 +97,16 @@ const RequestDetail = () => {
         <p>Número de piezas solicitadas: {requested.length}</p>
         {request.status == "pending" ? 
         <>
+            <button onClick={handleAcceptAll}>
+                Aceptar todos
+            </button>
             {requested.map((r) => (
                 <Tile key={r.id}>
-                    <p>{r.name}</p>
                     <p>{r.artifact}</p>
-                    {/* <p>{r.status}</p> */}
+                    <p>{r.description}</p>
+                    <img 
+                        src={`${API_URLS.BASE}${r.thumbnail}`}
+                        alt={r.artifact} /> {/* falta poner el ojo para que  */}
                     <CheckBox
                         onClick={() => handleStatusChange(r.id, r.status)}
                         value={r.status == "accepted"}
@@ -70,24 +114,45 @@ const RequestDetail = () => {
                 </Tile>
             ))}
 
-            <button>
+            <button onClick={()=> setShowModal(true)}>
                 Aceptar seleccionados
             </button>
-            <button>
+            <button onClick={handleSubmitReject}>
                 Rechazar todo
             </button>
         </> :
         <>
             {requested.map((r) => (
                 <Tile key={r.id}>
-                    <p>{r.name}</p>
                     <p>{r.artifact}</p>
+                    <p>{r.description}</p>
+                    <img 
+                        src={`${API_URLS.BASE}${r.thumbnail}`}
+                        alt={r.artifact} />
                     <p>{r.status}</p>
                 </Tile>
             ))}
         </>
         }
-        
+
+        {showModal && (
+            <Modal>
+                <ModalContent>
+                    <p>Introduce un mensaje para el usuario con el motivo de el rechazo o aceptación de los objetos seleccionados</p>
+                    <textarea
+                        placeholder="Mensaje"
+                        value={msg}
+                        onChange={(e) => setMsg(e.target.value)}
+                        style={{minHeight: "5rem"}}
+                        maxLength={500}
+                    />
+                    <br />
+                    <button onClick={() => setShowModal(false)}>Cancelar</button>
+                    <br />
+                    <button onClick={handleSubmit}>Enviar</button>
+                </ModalContent>
+            </Modal>
+        )}
         </div>
     );
 }
@@ -110,6 +175,28 @@ const Tile = styled("div")({
     justifyContent: "space-between",
     alignItems: "center",
     borderRadius: "0.5rem",
+});
+
+const Modal = styled("div")({
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+});
+
+const ModalContent = styled("div")({
+    backgroundColor: "#fff",
+    padding: "1rem",
+    borderRadius: "0.5rem",
+    display: "flex",
+    flexDirection: "column",
+    height: "20rem",
+    width: "20rem",
 });
 
 export default RequestDetail;

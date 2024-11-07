@@ -433,7 +433,8 @@ class RequestSerializer(serializers.ModelSerializer):
     """
     Serializer for the Request model and its related fields.
     """
-    
+    thumbnail = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
     class Meta:
         """
         Meta class for the RequestSerializer.
@@ -444,4 +445,49 @@ class RequestSerializer(serializers.ModelSerializer):
         """
 
         model = Request
+        fields = "__all__"
+
+    def get_thumbnail(self, instance):
+        """
+        Method to obtain the thumbnail of the request.
+
+        Args:
+        - instance: The instance of the request.
+
+        Returns:
+        - The URL of the thumbnail of the request.
+        """
+        if instance.artifact.id_thumbnail:
+            return instance.get_thumbnail()
+        else:
+            return None
+    
+    def get_description(self, instance):
+        """
+        Method to obtain the description of the request.
+
+        Args:
+        - instance: The instance of the request.
+
+        Returns:
+        - The description of the request.
+        """
+        return instance.get_description()
+    
+
+class BulkDownloadingRequestRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the BulkDownloadingRequest with his RequestSerializer.
+    """
+    requests = RequestSerializer(many=True)
+    class Meta:
+        """
+        Meta class for the BulkDownloadingRequestRequestSerializer.
+
+        Attributes:
+        - model: The BulkDownloadingRequest model to serialize.
+        - fields: The fields to include in the serialized data.
+        """
+
+        model = BulkDownloadingRequest
         fields = "__all__"

@@ -26,6 +26,7 @@ from rest_framework import permissions, generics, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+from django.db import transaction
 from django.db.models import Q
 from django.core.files import File
 from django.http import HttpResponse
@@ -40,7 +41,7 @@ from .serializers import (
     TagSerializer,
     CultureSerializer,
     BulkDownloadingRequestSerializer,
-    RequestSerializer
+    BulkDownloadingRequestRequestSerializer
 )
 from .models import (
     Artifact,
@@ -1134,7 +1135,7 @@ class RequestDetailAPIView(generics.RetrieveUpdateAPIView):
     API view for retrieving and updating the status of requests associated
     with a specific BulkDownloadingRequest.
     """
-    serializer_class = BulkDownloadingRequestSerializer
+    serializer_class = BulkDownloadingRequestRequestSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [
         permissions.IsAuthenticated & (IsFuncionarioPermission | IsAdminPermission)
@@ -1145,19 +1146,38 @@ class RequestDetailAPIView(generics.RetrieveUpdateAPIView):
 
     def get(self, request, pk):
         try:
-            bulk_request = self.get_queryset().get(pk=pk)
-            serializer = self.get_serializer(bulk_request)
-            requested = Request.objects.filter(artifact_request=serializer.data["id"])
-            requested = RequestSerializer(requested, many=True)
-            return Response({"data": serializer.data, "requested": requested.data}, status=status.HTTP_200_OK)
+            requested = self.get_queryset().get(pk=pk)
+            serializer = BulkDownloadingRequestRequestSerializer(requested)
+            return Response({"data": serializer.data}, status=status.HTTP_200_OK)
         except BulkDownloadingRequest.DoesNotExist:
-            return Response({"error": "BulkDownloadingRequest not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        
+    def put(self, request, pk):
+        try:
+            requests = request.data["requests"]
+            message = request.data["message"]
+            status_request = "pending"
+            with transaction.atomic():
+                for r in requests:
+                    request_artifact = Request.objects.get(pk=r["id"])
+                    request_artifact.status = r["status"]
+                    request_artifact.save()
+                    if status_request == "pending" and r["status"] == "approved":
+                        status_request = "approved"
+                    elif status_request == "pending" and r["status"] == "rejected":
+                        status_request = "rejected"
+                    elif (status_request == "approved" and r["status"] == "approved") or (status_request == "rejected" and r["status"] == "rejected"): 
+                        pass
+                    else:
+                        status_request = "partiallyaccepted"
+                bulk_download_request = BulkDownloadingRequest.objects.get(pk=pk)
+                bulk_download_request.status = status_request
+                bulk_download_request.admin_comments = message
+                bulk_download_request.save()
+
+            return Response({"data": "ok"}, status=status.HTTP_200_OK)
+        except BulkDownloadingRequest.DoesNotExist:
+            return Response({"detail": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            logger.error(f"Could not retrieve request {pk}: {e}")
-            return Response({"detail": f"Error al obtener solicitud"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-    def post(self, request, *args, **kwargs):
-        # Implementación de lógica para actualizar el status como antes
-        # Usando BulkDownloadingRequestSerializer para actualizar y devolver la data
-        return Response({"detail": "Not implemented"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+            logger.error(f"Error al actualizar solicitud: {e}")
+            return Response({"detail": "Error al actualizar solicitud"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -542,4 +542,19 @@ class Request(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         related_name="request")
-
+    
+    def get_thumbnail(self):
+        """
+        Returns the thumbnail of the artifact.
+        Returns:
+            str: Path to the thumbnail.
+        """
+        return self.artifact.id_thumbnail.path.url
+    
+    def get_description(self):
+        """
+        Returns the description of the artifact.
+        Returns:
+            str: Description of the artifact.
+        """
+        return self.artifact.description
