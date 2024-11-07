@@ -31,6 +31,7 @@ from django.db.models import Q
 from django.core.files import File
 from django.http import HttpResponse
 from django.conf import settings
+from django.core.mail import send_mail
 from .serializers import (
     ArtifactRequesterSerializer,
     ArtifactSerializer,
@@ -1174,10 +1175,34 @@ class RequestDetailAPIView(generics.RetrieveUpdateAPIView):
                 bulk_download_request.status = status_request
                 bulk_download_request.admin_comments = message
                 bulk_download_request.save()
+                try:
+                    send_mail(
+                        "Solicitud de descarga masiva",
+                        f"Su solicitud de descarga masiva ha sido {status_request}.\n"
+                        f"Comentarios: {message} \n"
+                        f"Link de descarga: {'http://localhost:8000/api/catalog/artifact/'+str(pk)+'/request/download' if settings.DEBUG else 'https://catalogo.dcc.uchile.cl/api/catalog/artifact/'+str(pk)+'/request/download'}",
+                        'no-reply@tudominio.com',
+                        [bulk_download_request.email],
+                    )
+                except Exception as e:
+                    logger.error(f"Error al enviar correo: {e}")
+                    return Response({"detail": "Error al enviar correo"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
             return Response({"data": "ok"}, status=status.HTTP_200_OK)
         except BulkDownloadingRequest.DoesNotExist:
             return Response({"detail": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+
             logger.error(f"Error al actualizar solicitud: {e}")
             return Response({"detail": "Error al actualizar solicitud"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RequestDownloadAPIView(generics.GenericAPIView):
+    """
+    API view for downloading the artifacts associated with a specific BulkDownloadingRequest.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        return Response({"detail": "Todavia no implementado"}, status=status.HTTP_501_NOT_IMPLEMENTED)
