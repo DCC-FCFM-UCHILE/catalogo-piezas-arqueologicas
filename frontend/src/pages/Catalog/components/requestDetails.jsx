@@ -1,4 +1,4 @@
-import React ,{useEffect} from "react";
+import React  from "react";
 import { Box, Typography, Button, List, ListItem, Divider, Container } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useSelection } from "../../../selectionContext";
@@ -6,6 +6,7 @@ import BulkDownloadArtifactForm from './BulkDownloadingForm'
 import DownloadArtifactButton from "../../ArtifactDetails/components/DownloadArtifactButton";
 import { API_URLS } from "../../../api";
 import { useToken } from "../../../hooks/useToken";
+import { useSnackBars } from "../../../hooks/useSnackbars";
 
 /*
 
@@ -15,36 +16,74 @@ const RequestDetails = () => {
   const { selectedArtifacts, setEmptyList } = useSelection();
   const { token } = useToken();
   const loggedIn = !!token;
-  useEffect(() => {
-    console.log("selectedArtifacts ha cambiado:", selectedArtifacts);
-  }, [selectedArtifacts]);
-  const onRequestDownload = async () => {
-    try {
-      // Configuración de la solicitud POST con el token y los IDs de los artefactos
-      const response = await fetch(`${API_URLS.DETAILED_ARTIFACT}`, {
+  const { addAlert } = useSnackBars(); // Accesses addAlert function from SnackbarProvider
+  
+/**
+   * Handles the download functionality for many artifacts.
+   * Initiates download and displays alerts for success or failure.
+   */
+
+
+const handleDownload = async () => {
+  try {
+    const response = await fetch(
+      `${API_URLS.DETAILED_ARTIFACT}/bulkdownloading`,
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          artifacts: selectedArtifacts.map((artifact) => artifact.id), // Enviar solo los IDs
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error("Error en la solicitud de descarga:", data.detail || "Error desconocido");
-        return;
+        body : JSON.stringify({
+            authenticated:true,
+            artifacts: selectedArtifacts.map((artifact) => artifact.id), // send all artifact's id
+        })
       }
+    );
 
-      console.log("Solicitud de descarga exitosa:", data.message || "Los archivos están siendo procesados");
-      // Aquí puedes mostrar una alerta de éxito o realizar alguna otra acción con `data`
-    } catch (error) {
-      console.error("Error en la solicitud de descarga:", error);
+    const data = await response.json();
+
+    if (!response.ok) {
+      addAlert(data.detail);
+      return;
     }
-  };
+    if(data.bulk_request_id){
+      console.log(data.bulk_request_id)
+    }
+    // Verifica si la solicitud fue exitosa y muestra una alerta
+    if (!response.ok) {
+      addAlert(data.detail);
+      return;
+    }
+    // If the first fetch was successful, proceed with downloading the artifacts
+
+    const downloadResponse = await fetch(
+      `${API_URLS.DETAILED_ARTIFACT}/${data.bulk_request_id}/bulkdownloading`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    const url = window.URL.createObjectURL(
+      new Blob([await downloadResponse.blob()])
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `bulk_artifacts.zip`;
+    link.click();
+    link.remove();
+    addAlert("Descarga exitosa");
+    
+  }
+  
+  catch (error) {
+    addAlert("Error al descargar pieza");
+  }
+    
+};
+
 
   return (
     <Box
@@ -87,8 +126,7 @@ const RequestDetails = () => {
             variant="contained"
             color="primary"
             fullWidth
-            onClick={onRequestDownload}
-            selectedArtifactsx={{ marginBottom: 1 }}
+            onClick={handleDownload}
             >
               Descargar Piezas
             </Button>
@@ -125,28 +163,3 @@ const HorizontalStack = styled("div")(({ theme }) => ({
 }));
 export default RequestDetails;
 
-/*
-
-{selectedArtifacts.length > 0 && (
-        <Container sx={{ paddingBottom: 2 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            onClick={onRequestDownload}
-            sx={{ marginBottom: 1 }}
-          >
-            Enviar Solicitud de Descarga
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            fullWidth
-            onClick={setEmptyList}
-          >
-            Deshacer Solicitud
-          </Button>
-        </Container>
-      )}
-
-*/

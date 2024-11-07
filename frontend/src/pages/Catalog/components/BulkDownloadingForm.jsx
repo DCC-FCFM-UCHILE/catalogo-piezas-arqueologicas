@@ -75,6 +75,7 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
         institution: formValues.institution.id,
         comments: formValues.comments,
         artifacts: artifactInfoList.map((artifact) => artifact.id), // send all artifact's id
+        authenticated:false
       };
   
       //send the post to backend
@@ -106,13 +107,13 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
       event.preventDefault();
       console.log('tratando de enviar formuilario')
       // Assuming formValues contains a 'rut' field that needs to be validated
-      
+      /*
       if (!validateRut(formValues.rut)) {
         setRutError(true);
         console.log('malo el rut')
         return; // Stop the form submission process
       }
-        
+        */
       // Reset RUT error if validation passes
       setRutError(false);
       // Proceed with download process

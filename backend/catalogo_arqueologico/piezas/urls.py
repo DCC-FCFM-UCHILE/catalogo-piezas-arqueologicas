@@ -38,4 +38,5 @@ urlpatterns = [
     path("institutions/", views.InstitutionAPIView.as_view()),
     path("artifact/<int:pk>/download", views.ArtifactDownloadAPIView.as_view()),
     path("artifact/bulkdownloading", views.ArtifactBulkDetailAPIView.as_view()),
+    path("artifact/<int:reqnumber>/bulkdownloading",views.ArtifactBulkDetailAPIView.as_view()),
 ]

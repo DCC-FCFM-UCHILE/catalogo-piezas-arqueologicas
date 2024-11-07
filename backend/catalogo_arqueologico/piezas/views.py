@@ -1091,7 +1091,6 @@ class InstitutionAPIView(generics.ListCreateAPIView):
             logger.error(f"Could not retrieve institutions:{e}")
             return Response({"detail": f"Error al obtener instituciones"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class ArtifactBulkDetailAPIView(APIView):
     """
     View to handle bulk download requests, allowing both authenticated and non-authenticated requests.
@@ -1102,9 +1101,17 @@ class ArtifactBulkDetailAPIView(APIView):
         Handles POST requests for bulk download requests, creating BulkDownloadingRequest and
         individual Request records for each artifact ID provided.
         """
-        # Verifica si el usuario no está autenticado y usa datos del formulario
-        if not request.user.is_authenticated:
-            # Extrae los datos del formulario
+        # if the user is not autenticated, use the form information, else use the user information and the data is avaible to download 
+        # immediately 
+        #if not request.user.is_authenticated:
+        
+        is_authenticated = request.data["authenticated"]
+        print(request.data["authenticated"])
+        #print(is_authenticated)
+        #if not request.user.is_authenticated:
+        if not is_authenticated:
+            print("usuario no autenticado")
+            # extract the data from the form
             name = request.data.get("fullName")
             rut = request.data.get("rut")
             email = request.data.get("email")
@@ -1112,18 +1119,18 @@ class ArtifactBulkDetailAPIView(APIView):
             comments = request.data.get("comments")
             artifact_ids = request.data.get("artifacts", [])
 
-            # Verifica que todos los campos necesarios estén presentes
+            # verificated if all the information is here.
             if not all([name, rut, email, institution_id, artifact_ids]):
                 return Response(
                     {"detail": "Faltan datos requeridos en la solicitud."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-
+            
             try:
-                # Intenta obtener la institución
+                # get the institution
                 institution = get_object_or_404(Institution, id=institution_id)
 
-                # Crea el registro de BulkDownloadingRequest
+                # create the row in BulkDownloadingRequest
                 bulk_request = BulkDownloadingRequest.objects.create(
                     name=name,
                     rut=rut,
@@ -1132,10 +1139,10 @@ class ArtifactBulkDetailAPIView(APIView):
                     is_registered=False,
                     institution=institution,
                     status="pending",
-                    admin_comments=None  # Comentario de administrador en nulo por defecto
+                    admin_comments=None  
                 )
                 print("BulkDownloadingRequest creado:", bulk_request)
-                # Crea un Request para cada ID de artefacto
+                # create a request for each artifact that the person wants
                 for artifact_id in artifact_ids:
                     artifact = get_object_or_404(Artifact, id=artifact_id)
                     print(f"Artifact encontrado: {artifact}")
@@ -1148,7 +1155,7 @@ class ArtifactBulkDetailAPIView(APIView):
                 # Log para confirmación de creación exitosa
                 logger.info("Bulk download request created successfully for non-authenticated user.")
 
-                # Respuesta de éxito
+                # success response
                 return Response(
                     {"detail": "Solicitud de descarga registrada exitosamente."},
                     status=status.HTTP_201_CREATED
@@ -1162,7 +1169,120 @@ class ArtifactBulkDetailAPIView(APIView):
                 )
 
         else:
-            # Lógica para usuarios autenticados - por completar
-            pass
-      
+            print("usuario autenticado")
+            token = request.headers.get("Authorization")
+            try:
+                token_instance = Token.objects.get(key=token.split(" ")[1])
+            except Token.DoesNotExist:
+                return Response(
+                    {"detail": "Se requiere iniciar sesión nuevamente"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            
+            username = token_instance.user
+            print(username)
+            try:
+                user = CustomUser.objects.get(username=username)
+            except CustomUser.DoesNotExist:
+                return Response(
+                    {"detail": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND
+                )
+            name = user.first_name + " " + user.last_name
+            try:
+                bulk_request = BulkDownloadingRequest.objects.create(
+                        name=name,
+                        rut=user.rut,
+                        email=user.email,
+                        is_registered=True,
+                        institution=user.institution if user.institution else None, 
+                        comments=None,
+                        status="accepted",
+                        admin_comments=None 
+                    )
+                print("BulkDownloadingRequest usuario autenticado creado:", bulk_request)
+                artifact_ids = request.data.get("artifacts", [])
+                for artifact_id in artifact_ids:
+                    artifact = get_object_or_404(Artifact, id=artifact_id)
+                    print(f"Artifact encontrado: {artifact}")
+                    Request.objects.create(
+                        artifact_request=bulk_request,
+                        artifact=artifact,
+                        status="accepted"
+                    )
 
+                # success response
+                return Response(
+                    {"detail": "Solicitud de descarga registrada exitosamente.",
+                     "bulk_request_id":bulk_request.id},
+                    status=status.HTTP_201_CREATED
+                )
+            except Exception as e:
+                logger.error(f"Error al procesar la solicitud de descarga en masa: {e}")
+                return Response(
+                    {"detail": "Ocurrió un error al procesar la solicitud."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+
+
+    def get(self, request, *args, **kwargs):
+        """
+        Handles GET requests for downloading multiple artifacts in a ZIP file.
+        This method will fetch all the artifacts linked to the BulkDownloadingRequest
+        associated with the authenticated user or by the request id if available.
+        """
+        reqnumber = kwargs.get("reqnumber")
+        print(reqnumber)
+        # Verify that the bulk_request_id is provided
+        if not reqnumber:
+            return Response(
+                {"detail": "Se requiere un ID de solicitud de descarga."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get the bulk download request and its associated artifacts
+        try:
+            #bulk_request = BulkDownloadingRequest.objects.get(id=reqnumber)
+            requests = Request.objects.filter(artifact_request_id=reqnumber)
+            print(requests)
+            artifacts = [req.artifact for req in requests]
+            print(artifacts)
+        except BulkDownloadingRequest.DoesNotExist:
+            return Response(
+                {"detail": "Solicitud de descarga no encontrada."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Create a ZIP file with the artifacts' files
+        buffer = BytesIO()
+        with zipfile.ZipFile(buffer, "w") as zipf:
+            for artifact in artifacts:
+                try:
+                    if artifact.id_thumbnail:
+                        zipf.write(
+                            artifact.id_thumbnail.path.path,
+                            f"thumbnail/{artifact.id_thumbnail.path}"
+                        )
+                    zipf.write(
+                        artifact.id_model.texture.path,
+                        f"model/{artifact.id_model.texture.name}"
+                    )
+                    zipf.write(
+                        artifact.id_model.object.path,
+                        f"model/{artifact.id_model.object.name}"
+                    )
+                    zipf.write(
+                        artifact.id_model.material.path,
+                        f"model/{artifact.id_model.material.name}"
+                    )
+                    images = Image.objects.filter(id_artifact=artifact.id)
+                    for image in images:
+                        zipf.write(image.path.path, f"model/{image.path}")
+                except Exception as e:
+                    logger.error(f"Error al agregar el archivo de {artifact}: {e}")
+
+        buffer.seek(0)
+        # Send the ZIP file in the response
+        response = HttpResponse(buffer, content_type="application/zip")
+        response["Content-Disposition"] = f"attachment; filename=bulk_artifacts_{reqnumber}.zip"
+        return response
