@@ -1163,11 +1163,11 @@ class RequestDetailAPIView(generics.RetrieveUpdateAPIView):
                     request_artifact = Request.objects.get(pk=r["id"])
                     request_artifact.status = r["status"]
                     request_artifact.save()
-                    if status_request == "pending" and r["status"] == "approved":
-                        status_request = "approved"
+                    if status_request == "pending" and r["status"] == "accepted":
+                        status_request = "accepted"
                     elif status_request == "pending" and r["status"] == "rejected":
                         status_request = "rejected"
-                    elif (status_request == "approved" and r["status"] == "approved") or (status_request == "rejected" and r["status"] == "rejected"): 
+                    elif (status_request == "accepted" and r["status"] == "accepted") or (status_request == "rejected" and r["status"] == "rejected"): 
                         pass
                     else:
                         status_request = "partiallyaccepted"
@@ -1176,14 +1176,24 @@ class RequestDetailAPIView(generics.RetrieveUpdateAPIView):
                 bulk_download_request.admin_comments = message
                 bulk_download_request.save()
                 try:
-                    send_mail(
-                        "Solicitud de descarga masiva",
-                        f"Su solicitud de descarga masiva ha sido {status_request}.\n"
-                        f"Comentarios: {message} \n"
-                        f"Link de descarga: {'http://localhost:8000/api/catalog/artifact/'+str(pk)+'/request/download' if settings.DEBUG else 'https://catalogo.dcc.uchile.cl/api/catalog/artifact/'+str(pk)+'/request/download'}",
-                        'no-reply@tudominio.com',
-                        [bulk_download_request.email],
-                    )
+                    if status_request == "rejected":
+                        send_mail(
+                            "Solicitud de descarga masiva",
+                            f"Su solicitud de descarga masiva ha sido rechazada.\n"
+                            f"Comentarios: {message}",
+                            'no-reply@tudominio.com',
+                            [bulk_download_request.email],
+                        )
+                    else:
+                        send_mail(
+                            "Solicitud de descarga masiva",
+                            f"Su solicitud de descarga masiva ha sido {status_request}.\n"
+                            f"Comentarios: {message} \n"
+                            f"Link de descarga: {'http://localhost:8000/api/catalog/artifact/'+str(pk)+'/request/download' if settings.DEBUG else 'https://catalogo.dcc.uchile.cl/api/catalog/artifact/'+str(pk)+'/request/download'}"
+                            f"este link estará disponible para descargar solo una vez",
+                            'no-reply@tudominio.com',
+                            [bulk_download_request.email],
+                        )
                 except Exception as e:
                     logger.error(f"Error al enviar correo: {e}")
                     return Response({"detail": "Error al enviar correo"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1206,6 +1216,13 @@ class RequestDownloadAPIView(generics.GenericAPIView):
 
     def get(self, request, pk):
         try:
+            bulk_download_request = BulkDownloadingRequest.objects.get(pk=pk)
+            if bulk_download_request.status == "pending":
+                return Response({"detail": "Solicitud pendiente"}, status=status.HTTP_400_BAD_REQUEST)
+            elif bulk_download_request.status == "rejected":
+                return Response({"detail": "Solicitud rechazada"}, status=status.HTTP_400_BAD_REQUEST)
+            elif bulk_download_request.status == "downloaded":
+                return Response({"detail": "Solicitud ya descargada"}, status=status.HTTP_400_BAD_REQUEST)
             requests = Request.objects.filter(artifact_request_id=pk, status="accepted")
             artifacts = [r.artifact for r in requests]
             buffer = BytesIO()
@@ -1234,6 +1251,8 @@ class RequestDownloadAPIView(generics.GenericAPIView):
                     images = Image.objects.filter(id_artifact=artifact.id)
                     for image in images:
                         zipf.write(image.path.path, f"model/{image.path}")
+            bulk_download_request.status = "downloaded"
+            bulk_download_request.save()
         except Exception as e:
             logger.error(f"Error al descargar solicitud: {e}")
             return Response({"detail": "Error al descargar solicitud"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
