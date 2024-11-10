@@ -24,6 +24,9 @@ artifacts within the system.
 """
 
 import logging
+import numpy as np
+import cv2
+import json
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -225,10 +228,55 @@ class Thumbnail(models.Model):
     Attributes:
         id (BigAutoField): Primary key.
         path (ImageField): Path to the thumbnail image, must be unique.
+        descriptor (CharField): Optional descriptor for the thumbnail.
     """
 
     id = models.BigAutoField(primary_key=True)
     path = models.ImageField(upload_to=settings.THUMBNAILS_URL, unique=True)
+    descriptor = models.TextField(blank=True, null=True)
+
+    @property
+    def histogram(self):
+        """
+        Compute the histogram of the thumbnail and return in a value 
+
+        Returns:
+            numpy.ndarray: Histogram of the thumbnail.
+        """
+        num_zonas_x = 4
+        num_zonas_y = 4
+        num_bins_por_zona = 8
+        image = cv2.imread(self.path.path, cv2.IMREAD_GRAYSCALE)
+        img_eq = cv2.equalizeHist(image)
+        descriptor = []
+        for j in range(num_zonas_y):
+            desde_y = int(img_eq.shape[0] / num_zonas_y * j)
+            hasta_y = int(img_eq.shape[0] / num_zonas_y * (j + 1))
+            for i in range(num_zonas_x):
+                desde_x = int(img_eq.shape[1] / num_zonas_x * i)
+                hasta_x = int(img_eq.shape[1] / num_zonas_x * (i + 1))
+                # recortar zona de la img
+                zona = img_eq[desde_y:hasta_y, desde_x:hasta_x]
+                # histograma de los pixeles de la zona
+                histograma, limites = np.histogram(zona, bins=num_bins_por_zona, range=(0, 255))
+                # normalizar histograma (bins suman 1)
+                histograma = histograma / np.sum(histograma)
+                # agregar descriptor de la zona al descriptor global
+                descriptor.extend(histograma)
+        return descriptor
+    
+    def save(self, *args, **kwargs):
+        """
+        Save method for the Thumbnail model.
+        """
+        super().save(*args, **kwargs)  # Save first to ensure the path is established
+        
+        # Now compute and set the descriptor
+        image = cv2.imread(self.path.path)
+        if image is not None:
+            self.descriptor = json.dumps(self.histogram)
+            super().save(update_fields=['descriptor'])  # Update only the descriptor field
+
 
 
 class Model(models.Model):
@@ -267,6 +315,7 @@ class Image(models.Model):
         id (BigAutoField): Primary key.
         id_artifact (ForeignKey): Reference to the associated artifact.
         path (ImageField): Path to the image, must be unique.
+        descriptor (CharField): Optional descriptor for the image.
     """
 
     id = models.BigAutoField(primary_key=True)
@@ -274,6 +323,47 @@ class Image(models.Model):
         "Artifact", on_delete=models.CASCADE, null=True, related_name="images"
     )
     path = models.ImageField(upload_to=settings.IMAGES_URL, unique=True)
+    descriptor = models.TextField(blank=True, null=True)
+
+    @property
+    def histogram(self):
+        """
+        Compute the histogram of the thumbnail and return in a value 
+
+        Returns:
+            numpy.ndarray: Histogram of the thumbnail.
+        """
+        num_zonas_x = 4
+        num_zonas_y = 4
+        num_bins_por_zona = 8
+        image = cv2.imread(self.path.path, cv2.IMREAD_GRAYSCALE)
+        img_eq = cv2.equalizeHist(image)
+        descriptor = []
+        for j in range(num_zonas_y):
+            desde_y = int(img_eq.shape[0] / num_zonas_y * j)
+            hasta_y = int(img_eq.shape[0] / num_zonas_y * (j + 1))
+            for i in range(num_zonas_x):
+                desde_x = int(img_eq.shape[1] / num_zonas_x * i)
+                hasta_x = int(img_eq.shape[1] / num_zonas_x * (i + 1))
+                # recortar zona de la img
+                zona = img_eq[desde_y:hasta_y, desde_x:hasta_x]
+                # histograma de los pixeles de la zona
+                histograma, limites = np.histogram(zona, bins=num_bins_por_zona, range=(0, 255))
+                # normalizar histograma (bins suman 1)
+                histograma = histograma / np.sum(histograma)
+                # agregar descriptor de la zona al descriptor global
+                descriptor.extend(histograma)
+        return descriptor
+    
+    def save(self, *args, **kwargs):
+        """
+        Save method for the Image model.
+        """
+        super().save(*args, **kwargs)
+        image = cv2.imread(self.path.path)
+        if image is not None:
+            self.descriptor = json.dumps(self.histogram)
+            super().save(update_fields=['descriptor'])
 
 
 class Artifact(models.Model):

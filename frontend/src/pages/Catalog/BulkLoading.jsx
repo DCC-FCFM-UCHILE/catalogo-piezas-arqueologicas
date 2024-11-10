@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Container,
     Grid,
     Typography,
     Button,
-    TextField,
-    FormLabel,
     CircularProgress,
     Modal,
     Box,
@@ -40,6 +38,16 @@ const BulkLoading = () => {
     const { addAlert } = useSnackBars();
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState(false);
+    const [errorMessages, setErrorMessages] = useState({
+        detail: "",
+        errores: [],
+    });
+    const [match, setMatch] = useState(false);
+    const [matchMessage, setMatchMessage] = useState({
+        detail: "",
+        posible_matches: [],
+        temp_dir: "",
+    });
     const [newObjectAttributes, setNewObjectAttributes] = useState({
         excel: {},
         zip: {},
@@ -60,9 +68,28 @@ const BulkLoading = () => {
             body: formData,
         }).then((response) => {
             if (response.ok) {
-                addAlert("Carga masiva exitosa");
+                response.json().then((data) => {
+                    console.log(data);
+                    if (data.posible_matches && data.posible_matches.length > 0) {
+                        setMatchMessage({
+                            detail: data.detail,
+                            posible_matches: data.posible_matches || [],
+                            temp_dir: data.temp_dir,
+                        });
+                        setMatch(true);
+                    } else {
+                        addAlert(data.detail);
+                    }
+                });
             } else {
-                addAlert("Error en la carga masiva");
+                setErrors(true);
+                response.json().then((data) => {
+                    console.log(data);
+                    setErrorMessages({
+                        detail: data.detail,
+                        errores: data.errores || [],
+                    });
+                });
             }
         })
         .catch((error) => {
@@ -72,6 +99,54 @@ const BulkLoading = () => {
             setLoading(false);
         });
     };
+
+    const handleSubmitMatch = async (e) => {
+        e.preventDefault();
+        setMatch(false);
+        setLoading(true);
+        //enviar la informacion de los match
+        await fetch(`${API_URLS.DETAILED_ARTIFACT}/bulkloading`, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(matchMessage),
+        }).then((response) => {
+            console.log(JSON.stringify(matchMessage));
+            console.log(response);
+            if (response.ok) {
+                response.json().then((data) => {
+                    console.log(data);
+                    addAlert(data.detail);
+                });
+            } else {
+                setErrors(true);
+                response.json().then((data) => {
+                    console.log(data);
+                    setErrorMessages({
+                        detail: data.detail,
+                        errores: data.errores || [],
+                    });
+                });
+            }
+        })
+        .catch((error) => {
+            addAlert(error.message);
+        })
+        .finally(() => {
+            setLoading(false);
+        });
+    };
+
+
+
+    useEffect(() => {
+        if (matchMessage.posible_matches && matchMessage.posible_matches.length > 0) {
+            matchMessage.posible_matches.forEach((element) => {
+                element.new_artifact.status = "replace";
+            })};
+    }, [match]);
 
     return (
         <FormContainer>
@@ -145,6 +220,68 @@ const BulkLoading = () => {
                     </LoadingText>
                 </ModalBox>
             </Modal>
+            <Modal open={errors}>
+                <ErrorBox>
+                    <Typography variant="h6">
+                        {errorMessages.detail}
+                    </Typography>
+                    {errorMessages.errores.map((error, index) => (
+                        <ErrorText key={index} variant="p">
+                            {error}
+                        </ErrorText>
+                    ))}
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => {
+                            setErrors(false);
+                            setErrorMessages({
+                                detail: "",
+                                errores: [],
+                            })}}
+                    >
+                        Cerrar
+                    </Button>
+                </ErrorBox>
+            </Modal>
+            <Modal open={match}>
+                <ErrorBox>
+                    <Typography variant="h6">
+                        {matchMessage.detail}
+                    </Typography>
+                    <Typography variant="h6">
+                        Se encontraron posibles coincidencias con los siguientes artefactos:
+                    </Typography>
+                    {matchMessage.posible_matches.map((match, index) => (
+                        <div>
+                            <ErrorText key={index} variant="p">
+                                La pieza {match.new_artifact.id} que intentaste puede ser la misma que la pieza: {match.match_artifact}
+                            </ErrorText>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                href={`/catalog/${match.match_artifact}`}
+                                target="_blank"
+                            > Ver pieza
+                            </Button>
+                            <select name="status" id="status" onChange={(e) => {
+                                match.new_artifact.status = e.target.value;
+                            }}>
+                                <option value="replace">Reemplazar la existente por la nueva</option>
+                                <option value="keep">Mantener la existente y no crear la nueva</option>
+                                <option value="new">Crear una nueva y mantener la existente</option>
+                            </select>
+                        </div>
+                    ))}
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleSubmitMatch}
+                    >
+                        Enviar
+                    </Button>
+                </ErrorBox>
+            </Modal>
         </FormContainer>
     );
 };
@@ -183,10 +320,51 @@ const ModalBox = styled(Box)(({ theme }) => ({
     transform: "translate(-50%, -50%)",
 }));
 
+const ErrorBox = styled(Box)(({ theme }) => ({
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: "2rem",
+    borderRadius: "10px",
+    boxShadow: theme.shadows[5],
+    width: "400px", // Ajustar el tamaño del modal
+    height: "80vh", // Ajustar la altura
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    overflowY: "auto",
+
+    // Estilos para la barra de desplazamiento
+    "&::-webkit-scrollbar": {
+        width: "8px", // Ancho de la barra de desplazamiento
+    },
+    "&::-webkit-scrollbar-track": {
+        background: "#f1f1f1", // Color del fondo de la pista
+        borderRadius: "10px", // Opcional para darle un diseño más redondeado
+    },
+    "&::-webkit-scrollbar-thumb": {
+        backgroundColor: "#888", // Color de la barra de desplazamiento
+        borderRadius: "10px", // Opcional para una barra redondeada
+    },
+    "&::-webkit-scrollbar-thumb:hover": {
+        background: "#555", // Color de la barra al hacer hover
+    }
+}));
+
 const LoadingText = styled(Typography)({
     marginTop: "3rem",
     fontSize: "1.2rem",
     textAlign: "center",
+});
+
+const ErrorText = styled(Typography)({
+    fontSize: "1rem",
+    textAlign: "justify",
+    width: "100%",
+    marginTop: "0.1rem",
+    marginBottom: "0.1rem",
 });
 
 export default BulkLoading;
