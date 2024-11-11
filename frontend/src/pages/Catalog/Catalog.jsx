@@ -74,8 +74,8 @@ const Catalog = () => {
       <CustomTypography variant="h1">Catálogo</CustomTypography>
       {/* Component for filtering artifacts */}
       <CatalogFilter filter={filter} setFilter={setFilter} options = {options} />
-  {/* Button to add new artifact (visible to logged-in users) */}
         <CustomButtonBox>
+          {/* Button to add new artifact (visible to logged-in users) */}
           {loggedIn && (
             <Button
               variant="contained"
@@ -86,6 +86,7 @@ const Catalog = () => {
               Agregar pieza
             </Button>
             )}
+          {/* Button to change selection mode */}
           <Button variant="outlined" color="secondary" size="large" onClick={changeSelectionMode}>
             Seleccionar Artefactos Para Descargar
           </Button>
