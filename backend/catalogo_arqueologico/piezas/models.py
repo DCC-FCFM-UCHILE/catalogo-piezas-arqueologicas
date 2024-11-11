@@ -546,3 +546,82 @@ class ArtifactRequester(models.Model):
             str: Name of the requester.
         """
         return self.name
+    
+class BulkDownloadingRequest(models.Model):
+    """
+    Represents a request of a many artifacts.
+    Attributes:
+        id (BigAutoField): Primary key.
+        name (CharField): Name of the requester.
+        rut (CharField): RUT of the requester.
+        email (EmailField): Email of the requester.
+        comments (TextField): Optional comments from the requester.
+        is_registered (BooleanField): Indicates if the requester is registered.
+        institution (ForeignKey): Reference to the associated institution.
+        status (CharField): Status of the request (pending, accepted, rejected,partiallyaccepted,downloaded).
+        admin_comments(TextField):Optional comments from the person who decline or accept the request.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+        ('partiallyaccepted','Partially accepted'),
+        ('downloaded','Downloaded')
+    ]
+    id = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=50)
+    rut = models.CharField(max_length=9)
+    email = models.EmailField()
+    comments = models.TextField(max_length=500, null=True)
+    admin_comments = models.TextField(max_length=500,null=True)
+    is_registered = models.BooleanField(default=True)
+    institution = models.ForeignKey(
+        Institution,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="institution_requester",
+    )
+    status = models.CharField(
+        max_length=17,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    def __str__(self):
+        """
+        String representation of the BulkDownloadingRequester model.
+        Returns the name of the requester.
+        Returns:
+            str: Name of the requester.
+        """
+        return self.name
+
+class Request(models.Model):
+    """
+    Represents a specific artifact for one bulkdownloadingrequest.
+
+    Attributes:
+        artifactRequest (ForeignKey): relaciona el artefacto con la peticion a la que pertenece
+        artifact (ForeignKey): Reference to the requested artifact.
+        status (CharField): Status of the request (pending, accepted, rejected).
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected')
+    ]
+    artifact_request = models.ForeignKey(
+        BulkDownloadingRequest, 
+        on_delete=models.CASCADE,
+        related_name="requests"
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    artifact = models.ForeignKey(
+        Artifact,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="request")
+

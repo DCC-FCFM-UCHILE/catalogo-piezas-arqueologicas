@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
+
+
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -7,6 +9,7 @@ import {
   Grid,
   Typography,
   Skeleton,
+  IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import ArtifactCard from "./components/ArtifactCard";
@@ -15,7 +18,9 @@ import CatalogFilter from "./components/CatalogFilter";
 import { API_URLS } from "../../api";
 import { useToken } from "../../hooks/useToken";
 import useFetchItems from "../../hooks/useFetchItems";
-
+import {useSelection} from "../../selectionContext";
+import RequestDetails from "./components/requestDetails"; 
+import CloseIcon from '@mui/icons-material/Close'
 
 /**
  * The Catalog component displays a catalog of artifacts with pagination and filtering options.
@@ -28,6 +33,23 @@ const Catalog = () => {
   const { token } = useToken();
   const loggedIn = !!token;
 
+  // implement "selecion mode" and a select artifact list to download many artifacts 
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const { selectedArtifacts, toggleSelection } = useSelection();
+  // to manage the state of the download request details 
+  const [isDetailsOpen,setDetailsOpen] = useState(false);
+
+  //function to set the selection mode 
+  const changeSelectionMode = () =>{
+    console.log(isSelectionMode)
+    if(isSelectionMode===true && isDetailsOpen===true){
+      changeDetailsOpen();
+    }
+    setIsSelectionMode(!isSelectionMode)
+  }
+  const changeDetailsOpen = () =>{
+    setDetailsOpen(!isDetailsOpen)
+  }
  // Custom hook to fetch items (artifacts) from the API with pagination and filtering
   const {
     items: artifactList,
@@ -38,8 +60,7 @@ const Catalog = () => {
     setPagination,
     options
   } = useFetchItems(API_URLS.ALL_ARTIFACTS);
-
-
+  
   /**
    * Handles redirection to the add artifact page.
    */
@@ -49,6 +70,12 @@ const Catalog = () => {
 
   return (
     <Container>
+      <Button variant="outlined" color="secondary" onClick={changeSelectionMode}>
+            Selección Descarga Artefactos
+      </Button>
+      {isSelectionMode && <Button variant="outlined" color="secondary" onClick={changeDetailsOpen}>
+          Ver Preselección
+      </Button>}
       {/* Title of the catalog */}
       <CustomTypography variant="h1">Catálogo</CustomTypography>
       {/* Component for filtering artifacts */}
@@ -83,7 +110,12 @@ const Catalog = () => {
           <Grid container spacing={2}>
             {artifactList.map((artifact) => (
               <Grid item xs={12} sm={6} md={4} key={artifact.id}>
-                <ArtifactCard artifact={artifact} />
+                <ArtifactCard 
+                artifact={artifact}
+                isSelectionMode={isSelectionMode}
+                onSelectArtifact={toggleSelection}
+                selected={selectedArtifacts.some(selected => selected.id === artifact.id)}
+                />
               </Grid>
             ))}
           </Grid>
@@ -100,6 +132,15 @@ const Catalog = () => {
           </Typography>
         </CustomBox>
       )}
+
+      {/* download request */}
+      
+      <RequestDetailsPanel open={isDetailsOpen}>
+        <IconButton onClick={()=> setDetailsOpen(false)} sx={{ position: 'absolute', top: 8, right: 8 }}>
+          <CloseIcon />
+        </IconButton>
+        <RequestDetails></RequestDetails>
+      </RequestDetailsPanel> 
     </Container>
   );
 };
@@ -120,5 +161,18 @@ const CustomBox = styled(Grid)(({ theme }) => ({
   gap: theme.spacing(2),
   marginBottom: theme.spacing(3),
 }));
-
+//Custom the request details information 
+const RequestDetailsPanel = styled(Box)(({ theme, open }) => ({
+  position: "fixed",
+  top: 0,
+  right: 0,
+  height: "100%",
+  width: "300px",
+  backgroundColor: theme.palette.background.paper,
+  boxShadow: theme.shadows[5],
+  padding: theme.spacing(2),
+  transform: open ? "translateX(0)" : "translateX(100%)",
+  transition: "transform 0.3s ease",
+  zIndex: 1300,
+}));
 export default Catalog;
