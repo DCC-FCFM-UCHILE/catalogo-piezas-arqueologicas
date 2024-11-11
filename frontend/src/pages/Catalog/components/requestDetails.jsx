@@ -1,89 +1,72 @@
-import React  from "react";
+import React from "react";
 import { Box, Typography, Button, List, ListItem, Divider, Container } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useSelection } from "../../../selectionContext";
-import BulkDownloadArtifactForm from './BulkDownloadingForm'
+import BulkDownloadArtifactForm from './BulkDownloadingForm';
 import DownloadArtifactButton from "../../ArtifactDetails/components/DownloadArtifactButton";
 import { API_URLS } from "../../../api";
 import { useToken } from "../../../hooks/useToken";
 import { useSnackBars } from "../../../hooks/useSnackbars";
 
-/*
-
-*/
-
 const RequestDetails = () => {
   const { selectedArtifacts, setEmptyList } = useSelection();
   const { token } = useToken();
   const loggedIn = !!token;
-  const { addAlert } = useSnackBars(); // Accesses addAlert function from SnackbarProvider
-  
-/**
-   * Handles the download functionality for many artifacts.
-   * Initiates download and displays alerts for success or failure.
-   */
+  const { addAlert } = useSnackBars();
 
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(
+        `${API_URLS.DETAILED_ARTIFACT}/bulkdownloading`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            authenticated: true,
+            artifacts: selectedArtifacts.map((artifact) => artifact.id),
+          }),
+        }
+      );
 
-const handleDownload = async () => {
-  try {
-    const response = await fetch(
-      `${API_URLS.DETAILED_ARTIFACT}/bulkdownloading`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body : JSON.stringify({
-            authenticated:true,
-            artifacts: selectedArtifacts.map((artifact) => artifact.id), // send all artifact's id
-        })
+      const data = await response.json();
+
+      if (!response.ok) {
+        addAlert(data.detail);
+        return;
       }
-    );
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      addAlert(data.detail);
-      return;
-    }
-    if(data.bulk_request_id){
-      console.log(data.bulk_request_id)
-    }
-    // Verifica si la solicitud fue exitosa y muestra una alerta
-    if (!response.ok) {
-      addAlert(data.detail);
-      return;
-    }
-    // If the first fetch was successful, proceed with downloading the artifacts
-
-    const downloadResponse = await fetch(
-      `${API_URLS.DETAILED_ARTIFACT}/${data.bulk_request_id}/bulkdownloading`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      if (data.bulk_request_id) {
+        console.log(data.bulk_request_id);
       }
-    );
-    const url = window.URL.createObjectURL(
-      new Blob([await downloadResponse.blob()])
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `bulk_artifacts.zip`;
-    link.click();
-    link.remove();
-    addAlert("Descarga exitosa");
-    
-  }
-  
-  catch (error) {
-    addAlert("Error al descargar pieza");
-  }
-    
-};
 
+      const downloadResponse = await fetch(
+        `${API_URLS.DETAILED_ARTIFACT}/${data.bulk_request_id}/bulkdownloading`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const url = window.URL.createObjectURL(
+        new Blob([await downloadResponse.blob()])
+      );
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bulk_artifacts.zip`;
+      link.click();
+      link.remove();
+      addAlert("Descarga exitosa");
+
+    } catch (error) {
+      addAlert("Error al descargar pieza");
+    }
+  };
 
   return (
     <Box
@@ -93,7 +76,7 @@ const handleDownload = async () => {
         borderLeft: "1px solid #ddd",
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: '90vh', // Limita la altura total del componente
+        maxHeight: '90vh',
         overflow: 'hidden',
       }}
     >
@@ -106,7 +89,13 @@ const handleDownload = async () => {
           {selectedArtifacts.map((artifact) => (
             <React.Fragment key={artifact.id}>
               <ListItem>
-                <Typography variant="body1">Pieza {artifact.id}</Typography>
+                <Typography variant="body1" sx={{ marginRight: 1 }}>Pieza {artifact.id}</Typography>
+                
+                {/* Añadimos las imágenes pequeñas aquí */}
+                <IconContainer>
+                  <img src='/eye.svg' alt="Icono 1" width={16} height={16} style={{ marginRight: 4 }} />
+                  <img src='./delete.svg' alt="Icono 2" width={16} height={16} />
+                </IconContainer>
               </ListItem>
               <Divider />
             </React.Fragment>
@@ -117,41 +106,36 @@ const handleDownload = async () => {
           No hay elementos seleccionados.
         </Typography>
       )}
-    {selectedArtifacts.length > 0 && (
-      <Container sx={{ paddingBottom: 2 }}>
-        {loggedIn ? (
-          // Botón para descargar si está logeado
-          <HorizontalStack>
-            <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            onClick={handleDownload}
-            >
-              Descargar Piezas
-            </Button>
-          </HorizontalStack>
-        ) : (
-          // request form if the person is not logged.
-          <DownloadArtifactButton text={"Solicitar datos"}>
-            <BulkDownloadArtifactForm artifactInfoList={selectedArtifacts} />
-          </DownloadArtifactButton>
-          
-        )}
+      {selectedArtifacts.length > 0 && (
+        <Container sx={{ paddingBottom: 2 }}>
+          {loggedIn ? (
+            <HorizontalStack>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                onClick={handleDownload}
+              >
+                Descargar Piezas
+              </Button>
+            </HorizontalStack>
+          ) : (
+            <DownloadArtifactButton text={"Solicitar datos"}>
+              <BulkDownloadArtifactForm artifactInfoList={selectedArtifacts} />
+            </DownloadArtifactButton>
+          )}
 
-        {/* Botón para deshacer solicitud que siempre se muestra si hay elementos seleccionados */}
-        <Button
-          variant="contained"
-          color="secondary"
-          fullWidth
-          onClick={setEmptyList}
-          sx={{ marginTop: 1 }}
-        >
-          Deshacer Solicitud
-        </Button>
-      </Container>
-)}
-      
+          <Button
+            variant="contained"
+            color="secondary"
+            fullWidth
+            onClick={setEmptyList}
+            sx={{ marginTop: 1 }}
+          >
+            Deshacer Solicitud
+          </Button>
+        </Container>
+      )}
     </Box>
   );
 };
@@ -161,5 +145,39 @@ const HorizontalStack = styled("div")(({ theme }) => ({
   flexDirection: "row",
   gap: theme.spacing(1),
 }));
+
+// Estilo para alinear los iconos pequeños en línea
+const IconContainer = styled("div")({
+  display: "flex",
+  gap: 8,
+  marginLeft: "auto",
+});
+
 export default RequestDetails;
 
+
+/*
+
+{selectedArtifacts.length > 0 && (
+        <Container sx={{ paddingBottom: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            onClick={onRequestDownload}
+            sx={{ marginBottom: 1 }}
+          >
+            Enviar Solicitud de Descarga
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            fullWidth
+            onClick={setEmptyList}
+          >
+            Deshacer Solicitud
+          </Button>
+        </Container>
+      )}
+
+*/
