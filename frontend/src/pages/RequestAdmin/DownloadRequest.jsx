@@ -5,6 +5,7 @@ import { Button, List, ListItem, ListItemButton, ListItemText, ListItemIcon, Div
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 
 const DownloadRequest = () => {
     const { token } = useToken();
@@ -45,14 +46,6 @@ const DownloadRequest = () => {
     };
     return (
         <div>
-            <div>
-                <Button onClick={() => setFilter("")}>Todos</Button>
-                <Button onClick={() => setFilter("pending")}>Pendientes</Button>
-                <Button onClick={() => setFilter("accepted")}>Aceptados</Button>
-                <Button onClick={() => setFilter("partiallyaccepted")}>Parcialmente aceptados</Button>
-                <Button onClick={() => setFilter("rejected")}>Rechazados</Button>
-                <Button onClick={() => setFilter("downloaded")}>Descargados</Button>
-            </div>
             <Box textAlign="left" py={3} mx={4}>
                 <Typography variant="h4" component="h1">
                     Administración de Solicitudes
@@ -64,71 +57,73 @@ const DownloadRequest = () => {
                     <p>{request.name}</p>
                     <p>{request.email}</p>
                     <p>Solicita {request.request_count} {request.request_count == 1 ? "pieza" : "piezas"}.</p>
-                    <p>{request.status}</p> {/* me gustaria usar el status como un if para poner logos señalando el status */}
+                    <p>{request.status}</p>
                     <a href={"./downloadrequest/" + request.id}>Ver detalles</a>
                 </div>
             ))}
-        <Box display="flex" flexDirection="row">
-            {/* Side navigation */}
-            <Box width="20%" padding={2}>
-                <List>
-                    <ListItemButton onClick={() => setFilter("")}>
-                        <ListItemText primary="Todas" />
-                    </ListItemButton>
-                    <ListItemButton onClick={() => setFilter("pending")}>
-                        <ListItemText primary="Pendientes" />
-                    </ListItemButton>
-                    <ListItemButton onClick={() => setFilter("accepted")}>
-                        <ListItemText primary="Aceptadas" />
-                    </ListItemButton>
-                    <ListItemButton onClick={() => setFilter("partiallyaccepted")}>
-                        <ListItemText primary="Parcialmente aceptadas" />
-                    </ListItemButton>
-                    <ListItemButton onClick={() => setFilter("rejected")}>
-                        <ListItemText primary="Rechazadas" />
-                    </ListItemButton>
-                    <ListItemButton onClick={() => setFilter("downloaded")}>
-                        <ListItemText primary="Descargadas" />
-                    </ListItemButton>
-                </List>
-            </Box>
-            
-            <Divider orientation="vertical" flexItem />
+            <Box display="flex" flexDirection="row">
+                <Box width="20%" padding={2}>
+                    <List>
+                        <ListItemButton onClick={() => setFilter("")}>
+                            <ListItemText primary="Todas" />
+                        </ListItemButton>
+                        <ListItemButton onClick={() => setFilter("pending")}>
+                            <ListItemText primary="Pendientes" />
+                        </ListItemButton>
+                        <ListItemButton onClick={() => setFilter("accepted")}>
+                            <ListItemText primary="Aceptadas" />
+                        </ListItemButton>
+                        <ListItemButton onClick={() => setFilter("partiallyaccepted")}>
+                            <ListItemText primary="Parcialmente aceptadas" />
+                        </ListItemButton>
+                        <ListItemButton onClick={() => setFilter("rejected")}>
+                            <ListItemText primary="Rechazadas" />
+                        </ListItemButton>
+                        <ListItemButton onClick={() => setFilter("downloaded")}>
+                            <ListItemText primary="Descargadas" />
+                        </ListItemButton>
+                    </List>
+                </Box>
+                
+                <Divider orientation="vertical" flexItem />
 
-            {/* Main content */}
-            <Box width="80%" padding={2} my={2}>
-                <Typography variant="h5">Solicitudes</Typography>
-                <List>
-                    {filteredRequests.map((request, index) => (
-                        <React.Fragment key={index}>
-                            <ListItem>
-                                <ListItemText
-                                    primary={`${request.user}: Solicita ${request.pieces} piezas.`}
-                                    secondary={`Estado: ${request.status}`}
-                                />
-                                <ListItemIcon>
-                                    <IconButton>
-                                        <CheckCircleIcon />
-                                    </IconButton>
-                                    <IconButton>
-                                        <CancelIcon />
-                                    </IconButton>
-                                    <IconButton>
-                                        <MoreHorizIcon />
-                                    </IconButton>
-                                </ListItemIcon>
-                            </ListItem>
-                            <Divider />
-                        </React.Fragment>
-                    ))}
-                </List>
-                <Box mt={2} textAlign="center" className="floating-box">
-                    <Typography variant="caption">
-                        Tienes {filteredRequests.filter(req => req.status === "Pendiente").length} solicitudes pendientes
-                    </Typography>
+                <Box width="80%" padding={2} my={2}>
+                    <Typography variant="h5">Solicitudes</Typography>
+                    <List>
+                        {filteredRequests.map((request, index) => (
+                            <React.Fragment key={index}>
+                                <ListItem>
+                                    <ListItemText
+                                        primary={`${request.user}: Solicita ${request.pieces} piezas.`}
+                                        secondary={`Estado: ${request.status}`}
+                                    />
+                                    <ListItemIcon>
+                                        <IconButton>
+                                            <CheckCircleIcon />
+                                        </IconButton>
+                                        <IconButton>
+                                            <CancelIcon />
+                                        </IconButton>
+                                        <IconButton>
+                                            <MoreHorizIcon />
+                                        </IconButton>
+                                    </ListItemIcon>
+                                </ListItem>
+                                <Divider />
+                            </React.Fragment>
+                        ))}
+                    </List>
+                    <Box textAlign="center" className="floating-box" sx={{ position: 'fixed', bottom: 30, right: 30 }}>
+                        {/*Icono de solicitud */}
+                        <IconButton>
+                            <NotificationsActiveIcon />
+                        </IconButton>
+                        <Typography variant="caption">
+                            Tienes {filteredRequests.filter(req => req.status === "Pendiente").length} solicitudes pendientes
+                        </Typography>
+                    </Box>
                 </Box>
             </Box>
-        </Box>
         </div>
     );
 }
