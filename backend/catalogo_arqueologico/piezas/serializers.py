@@ -491,3 +491,36 @@ class BulkDownloadingRequestRequestSerializer(serializers.ModelSerializer):
 
         model = BulkDownloadingRequest
         fields = "__all__"
+
+
+class DescriptorArtifactSerializer(serializers.Serializer):
+    image_descriptors = serializers.SerializerMethodField()
+    thumbnail_descriptor = serializers.SerializerMethodField()
+    id_artefacto = serializers.IntegerField(source='id')
+
+    def get_image_descriptors(self, obj):
+        # Recorremos todas las imágenes relacionadas y obtenemos los descriptores e IDs
+        return [(image.descriptor, obj.id) for image in obj.images.all()]
+
+    def get_thumbnail_descriptor(self, obj):
+        # Verificamos si el thumbnail existe y retornamos su descriptor e ID
+        if obj.id_thumbnail:
+            return (obj.id_thumbnail.descriptor, obj.id)
+        return None
+
+    def to_representation(self, instance):
+        # Obtenemos los descriptores de imágenes y del thumbnail (si existe)
+        image_descriptors = self.get_image_descriptors(instance)
+        thumbnail_descriptor = self.get_thumbnail_descriptor(instance)
+
+        if thumbnail_descriptor:
+            image_descriptors.append(thumbnail_descriptor)  # Añadimos el thumbnail si existe
+
+        # Separar descriptores e IDs en dos listas
+        descriptors = [desc for desc, _ in image_descriptors]
+        ids = [artifact_id for _, artifact_id in image_descriptors]
+
+        return {
+            'descriptors': descriptors,
+            'ids': ids
+        }

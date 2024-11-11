@@ -1,48 +1,70 @@
-import React ,{useEffect} from "react";
+import React from "react";
 import { Box, Typography, Button, List, ListItem, Divider, Container } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useSelection } from "../../../selectionContext";
-import BulkDownloadArtifactForm from './BulkDownloadingForm'
+import BulkDownloadArtifactForm from './BulkDownloadingForm';
 import DownloadArtifactButton from "../../ArtifactDetails/components/DownloadArtifactButton";
 import { API_URLS } from "../../../api";
 import { useToken } from "../../../hooks/useToken";
-
-/*
-
-*/
+import { useSnackBars } from "../../../hooks/useSnackbars";
 
 const RequestDetails = () => {
   const { selectedArtifacts, setEmptyList } = useSelection();
   const { token } = useToken();
   const loggedIn = !!token;
-  useEffect(() => {
-    console.log("selectedArtifacts ha cambiado:", selectedArtifacts);
-  }, [selectedArtifacts]);
-  const onRequestDownload = async () => {
+  const { addAlert } = useSnackBars();
+
+  const handleDownload = async () => {
     try {
-      // Configuración de la solicitud POST con el token y los IDs de los artefactos
-      const response = await fetch(`${API_URLS.DETAILED_ARTIFACT}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          artifacts: selectedArtifacts.map((artifact) => artifact.id), // Enviar solo los IDs
-        }),
-      });
+      const response = await fetch(
+        `${API_URLS.DETAILED_ARTIFACT}/bulkdownloading`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            authenticated: true,
+            artifacts: selectedArtifacts.map((artifact) => artifact.id),
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Error en la solicitud de descarga:", data.detail || "Error desconocido");
+        addAlert(data.detail);
         return;
       }
 
-      console.log("Solicitud de descarga exitosa:", data.message || "Los archivos están siendo procesados");
-      // Aquí puedes mostrar una alerta de éxito o realizar alguna otra acción con `data`
+      if (data.bulk_request_id) {
+        console.log(data.bulk_request_id);
+      }
+
+      const downloadResponse = await fetch(
+        `${API_URLS.DETAILED_ARTIFACT}/${data.bulk_request_id}/bulkdownloading`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const url = window.URL.createObjectURL(
+        new Blob([await downloadResponse.blob()])
+      );
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bulk_artifacts.zip`;
+      link.click();
+      link.remove();
+      addAlert("Descarga exitosa");
+
     } catch (error) {
-      console.error("Error en la solicitud de descarga:", error);
+      addAlert("Error al descargar pieza");
     }
   };
 
@@ -54,7 +76,7 @@ const RequestDetails = () => {
         borderLeft: "1px solid #ddd",
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: '90vh', // Limita la altura total del componente
+        maxHeight: '90vh',
         overflow: 'hidden',
       }}
     >
@@ -67,7 +89,13 @@ const RequestDetails = () => {
           {selectedArtifacts.map((artifact) => (
             <React.Fragment key={artifact.id}>
               <ListItem>
-                <Typography variant="body1">Pieza {artifact.id}</Typography>
+                <Typography variant="body1" sx={{ marginRight: 1 }}>Pieza {artifact.id}</Typography>
+                
+                {/* Añadimos las imágenes pequeñas aquí */}
+                <IconContainer>
+                  <img src='/eye.svg' alt="Icono 1" width={16} height={16} style={{ marginRight: 4 }} />
+                  <img src='./delete.svg' alt="Icono 2" width={16} height={16} />
+                </IconContainer>
               </ListItem>
               <Divider />
             </React.Fragment>
@@ -78,42 +106,36 @@ const RequestDetails = () => {
           No hay elementos seleccionados.
         </Typography>
       )}
-    {selectedArtifacts.length > 0 && (
-      <Container sx={{ paddingBottom: 2 }}>
-        {loggedIn ? (
-          // Botón para descargar si está logeado
-          <HorizontalStack>
-            <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            onClick={onRequestDownload}
-            selectedArtifactsx={{ marginBottom: 1 }}
-            >
-              Descargar Piezas
-            </Button>
-          </HorizontalStack>
-        ) : (
-          // request form if the person is not logged.
-          <DownloadArtifactButton text={"Solicitar datos"}>
-            <BulkDownloadArtifactForm artifactInfoList={selectedArtifacts} />
-          </DownloadArtifactButton>
-          
-        )}
+      {selectedArtifacts.length > 0 && (
+        <Container sx={{ paddingBottom: 2 }}>
+          {loggedIn ? (
+            <HorizontalStack>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                onClick={handleDownload}
+              >
+                Descargar Piezas
+              </Button>
+            </HorizontalStack>
+          ) : (
+            <DownloadArtifactButton text={"Solicitar datos"}>
+              <BulkDownloadArtifactForm artifactInfoList={selectedArtifacts} />
+            </DownloadArtifactButton>
+          )}
 
-        {/* Botón para deshacer solicitud que siempre se muestra si hay elementos seleccionados */}
-        <Button
-          variant="contained"
-          color="secondary"
-          fullWidth
-          onClick={setEmptyList}
-          sx={{ marginTop: 1 }}
-        >
-          Deshacer Solicitud
-        </Button>
-      </Container>
-)}
-      
+          <Button
+            variant="contained"
+            color="secondary"
+            fullWidth
+            onClick={setEmptyList}
+            sx={{ marginTop: 1 }}
+          >
+            Deshacer Solicitud
+          </Button>
+        </Container>
+      )}
     </Box>
   );
 };
@@ -123,7 +145,16 @@ const HorizontalStack = styled("div")(({ theme }) => ({
   flexDirection: "row",
   gap: theme.spacing(1),
 }));
+
+// Estilo para alinear los iconos pequeños en línea
+const IconContainer = styled("div")({
+  display: "flex",
+  gap: 8,
+  marginLeft: "auto",
+});
+
 export default RequestDetails;
+
 
 /*
 

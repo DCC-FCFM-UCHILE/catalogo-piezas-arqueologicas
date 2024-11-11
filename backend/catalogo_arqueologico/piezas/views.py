@@ -17,6 +17,12 @@ import math
 import zipfile
 import pandas as pd
 import time
+import threading
+import numpy as np
+import cv2
+from scipy.spatial import distance
+from ast import literal_eval
+import json
 import re
 import shutil
 from io import BytesIO
@@ -27,11 +33,13 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.db import transaction
+from rest_framework.views import APIView
 from django.db.models import Q
 from django.core.files import File
 from django.http import HttpResponse
 from django.conf import settings
 from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404
 from .serializers import (
     ArtifactRequesterSerializer,
     ArtifactSerializer,
@@ -43,6 +51,7 @@ from .serializers import (
     CultureSerializer,
     BulkDownloadingRequestSerializer,
     BulkDownloadingRequestRequestSerializer
+    DescriptorArtifactSerializer
 )
 from .models import (
     Artifact,
@@ -56,7 +65,7 @@ from .models import (
     Model,
     Thumbnail,
     BulkDownloadingRequest,
-    Request
+    Request,
 )
 from .permissions import IsFuncionarioPermission, IsAdminPermission
 from .authentication import TokenAuthentication
@@ -728,6 +737,195 @@ class BulkLoadingAPIView(generics.GenericAPIView):
     permission_classes = [
         permissions.IsAuthenticated & (IsFuncionarioPermission | IsAdminPermission)
     ]
+    temp_dir = ""
+
+
+    def put(self, request, *args, **kwargs):
+        """
+        Handles PUT requests.
+
+        It bulk loads artifacts and returns a response containing the serialized
+        data for the created artifacts.
+
+        Args:
+            request: The HTTP request object.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            Response: Django REST Framework's Response object containing serialized
+                data for the created artifacts.
+        """
+        #falta implementar
+        matches = request.data.get("posible_matches")
+        temp = request.data.get("temp_dir")
+        self.temp_dir = settings.MEDIA_ROOT+"temp/"+temp
+        for match in matches:
+            try:
+                print(match)
+                new_artifact = match["new_artifact"]
+                match_artifact = match["match_artifact"]
+                print(new_artifact)
+                print(match_artifact)
+                status_match = new_artifact["status"]
+                if status_match == "replace":
+                    print("Reemplazar")
+                    #reemplazar la pieza conid match_artifact con la info de new_artifact
+                    #buscar la pieza a reemplazar
+                    artifact = Artifact.objects.get(id=match_artifact)
+                    #buscar etiquetas
+                    tags_instances = []
+                    for tag in new_artifact["tags"]:
+                        tag_instance = Tag.objects.get(name=tag)
+                        tags_instances.append(tag_instance)
+
+                    #buscar la cultura
+                    culture_instance = Culture.objects.get(name=new_artifact["culture"])
+
+                    #buscar la forma
+                    shape_instance = Shape.objects.get(name=new_artifact["shape"])
+
+                    #descripción
+                    description = new_artifact["description"]
+
+                    #buscar algun archivo de thumbnail
+                    thumbnail = new_artifact["file_thumbnail"]
+                    thumbnail_path = os.path.normpath(self.temp_dir + thumbnail)
+                    with open(thumbnail_path, "rb") as f:
+                        thumbnail_file = File(f, name=thumbnail)
+                        thumbnail_instance = Thumbnail.objects.create(path=thumbnail_file)
+
+                    #buscar los archivos de modelo
+                    models = new_artifact["files_model"]
+                    texture_file = [file for file in models if file.endswith(".jpg")]
+                    object_file = [file for file in models if file.endswith(".obj")]
+                    material_file = [file for file in models if file.endswith(".mtl")]
+                    if texture_file != [] and object_file != [] and material_file != []:
+                        texture_path = os.path.normpath(self.temp_dir + texture_file[0])
+                        object_path = os.path.normpath(self.temp_dir + object_file[0])
+                        material_path = os.path.normpath(self.temp_dir + material_file[0])
+                        with open(texture_path, "rb") as f:
+                            texture_file = File(f, name=texture_file[0])
+                            with open(object_path, "rb") as f:
+                                object_file = File(f, name=object_file[0])
+                                with open(material_path, "rb") as f:
+                                    material_file = File(f, name=material_file[0])
+                                    model, created = Model.objects.get_or_create(
+                                        texture=texture_file,
+                                        object=object_file,
+                                        material=material_file,
+                                    )
+                        if created:
+                            logger.info(f"Model created: {model.texture}, {model.object}, {model.material}")
+                        else:
+                            logger.info(f"Model updated: {model.texture}, {model.object}, {model.material}")
+                    else:
+                        model = None
+                    # crear la pieza
+                    artifact.description = description
+                    artifact.id_thumbnail = thumbnail_instance
+                    artifact.id_model = model
+                    artifact.id_shape = shape_instance
+                    artifact.id_culture = culture_instance
+                    artifact.save()
+                    # borramos las etiquetas anteriores
+                    artifact.id_tags.clear()
+                    for tag_instance in tags_instances:
+                        artifact.id_tags.add(tag_instance)
+
+                    # borramos las imagenes anteriores
+                    images = Image.objects.filter(id_artifact=artifact)
+                    for image in images:
+                        image.delete()
+                    #imagenes
+                    images = new_artifact["files_images"]
+                    images_instances = []
+                    for image in images:
+                        image_path = os.path.normpath(self.temp_dir + image)
+                        with open(image_path, "rb") as f:
+                            image_file = File(f, name=image)
+                            image_instance = Image.objects.create(path=image_file, id_artifact=artifact)
+                            images_instances.append(image_instance)
+                            
+                
+                elif status_match == "keep":
+                    print("Mantener")
+                elif status_match == "new":
+                    print("Nuevo")
+                    #crear la pieza con la info de new_artifact
+                    #buscar etiquetas
+                    tags_instances = []
+                    for tag in new_artifact["tags"]:
+                        tag_instance = Tag.objects.get(name=tag)
+                        tags_instances.append(tag_instance)
+
+                    #buscar la cultura
+                    culture_instance = Culture.objects.get(name=new_artifact["culture"])
+
+                    #buscar la forma
+                    shape_instance = Shape.objects.get(name=new_artifact["shape"])
+
+                    #descripción
+                    description = new_artifact["description"]
+
+                    #buscar algun archivo de thumbnail
+                    thumbnail = new_artifact["file_thumbnail"]
+                    thumbnail_path = os.path.normpath(self.temp_dir + thumbnail)
+                    with open(thumbnail_path, "rb") as f:
+                        thumbnail_file = File(f, name=thumbnail)
+                        thumbnail_instance = Thumbnail.objects.create(path=thumbnail_file)
+
+                    #buscar los archivos de modelo
+                    models = new_artifact["files_model"]
+                    texture_file = [file for file in models if file.endswith(".jpg")]
+                    object_file = [file for file in models if file.endswith(".obj")]
+                    material_file = [file for file in models if file.endswith(".mtl")]
+                    if texture_file != [] and object_file != [] and material_file != []:
+                        texture_path = os.path.normpath(self.temp_dir + texture_file[0])
+                        object_path = os.path.normpath(self.temp_dir + object_file[0])
+                        material_path = os.path.normpath(self.temp_dir + material_file[0])
+                        with open(texture_path, "rb") as f:
+                            texture_file = File(f, name=texture_file[0])
+                            with open(object_path, "rb") as f:
+                                object_file = File(f, name=object_file[0])
+                                with open(material_path, "rb") as f:
+                                    material_file = File(f, name=material_file[0])
+                                    model, created = Model.objects.get_or_create(
+                                        texture=texture_file,
+                                        object=object_file,
+                                        material=material_file,
+                                    )
+                        if created:
+                            logger.info(f"Model created: {model.texture}, {model.object}, {model.material}")
+                        else:
+                            logger.info(f"Model updated: {model.texture}, {model.object}, {model.material}")
+                    else:
+                        model = None
+                    # crear la pieza
+                    artifact = Artifact.objects.create(description=description, id_thumbnail=thumbnail_instance, id_model=model, id_shape=shape_instance, id_culture=culture_instance)
+                    for tag_instance in tags_instances:
+                        artifact.id_tags.add(tag_instance)
+                    #imagenes
+                    images = new_artifact["files_images"]
+                    images_instances = []
+                    for image in images:
+                        image_path = os.path.normpath(self.temp_dir + image)
+                        with open(image_path, "rb") as f:
+                            image_file = File(f, name=image)
+                            image_instance = Image.objects.create(path=image_file, id_artifact=artifact)
+                            images_instances.append(image_instance)
+
+            except Exception as e:
+                self.delete_files(self.temp_dir)
+                return Response(
+                    {"detail": f"Error al cargar las piezas: {e}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+        self.delete_files(self.temp_dir)
+        return Response(
+            {"detail": "Piezas actualizadas exitosamente"},
+            status=status.HTTP_200_OK,
+        )
 
     def post(self, request, *args, **kwargs):
         """
@@ -789,6 +987,7 @@ class BulkLoadingAPIView(generics.GenericAPIView):
         
         # Unzip the ZIP file and put the files in a temporary folder
         temp_dir = settings.MEDIA_ROOT+"temp/"+str(hash(zip_file.name+str(time.time())))
+        self.temp_dir = temp_dir
         try:
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
                 zip_ref.extractall(temp_dir)
@@ -811,9 +1010,24 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                 {"detail": "Error al validar los archivos", "errores": errors},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        #obtenemos los descriptores de las piezas existentes para comparar
+        descriptores, ids = self.get_existing_descriptors()
+
+        posible_matches = []
+        count = 0
         # Iterate over the artifacts and create or update them
         for data in data_with_files:
+            desc = [data["thumbnail_desc"]]
+            desc.extend(data["images_desc"])
+            matriz = distance.cdist(descriptores, desc, 'cityblock')
+            min_dist = np.min(matriz)
+            min_row, min_col = np.unravel_index(np.argmin(matriz), matriz.shape)
+            print(f"Minimo: {min_dist}, en la fila {min_row} y columna {min_col}, correspondiente a la pieza {ids[min_row]} con el artefacto {data['id']}")
+            if min_dist < 0.1:
+                posible_matches.append({"new_artifact": data, "match_artifact": ids[min_row],})
+                continue
             try:
+                count += 1
                 #buscar etiquetas
                 tags_instances = []
                 for tag in data["tags"]:
@@ -891,14 +1105,22 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
-        # Delete the temporary folder and its contents
-        self.delete_files(temp_dir)
+        # Delete the temporary folder and its contents after 1 hour
+        delete_thread = threading.Thread(target=self.delete_files_delay, args=(temp_dir, 3600))
+        delete_thread.start()
 
-        
+        #devolvemos solo el hash del directorio temporal
+        temp = temp_dir.split("/")[-1]
         return Response(
-            {"detail": "Carga masiva exitosa"},
+            {"detail": f"Se han cargado exitosamente {count} piezas", "posible_matches": posible_matches, "temp_dir": temp},
             status=status.HTTP_201_CREATED,
         )
+
+    def delete_files_delay(self, temp_dir, delay):
+        print("Deleting files in", delay, "seconds")
+        time.sleep(delay)
+        self.delete_files(temp_dir)
+        print("Files deleted")
 
     def read_excel(self, excel_file) -> pd.DataFrame:
         """
@@ -1022,9 +1244,10 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                         errors.append(f"La pieza {id} no tiene archivo .jpg")
                     if len(images) == 0:
                         errors.append(f"La pieza {id} no tiene imágenes ni modelo")
-                else:
-                    data_with_files.append({
-                        "description": row.iloc[1],"shape": row.iloc[2], "culture": row.iloc[3], "tags": row.iloc[4].split(","), "file_thumbnail": thumbnail[0], "files_model": model_files, "files_images": images})
+                if valid:
+                    thumbnail_desc = self.get_descriptor(thumbnail[0])
+                    images_desc = [self.get_descriptor(image) for image in images]
+                    data_with_files.append({"id": row.iloc[0], "description": row.iloc[1],"shape": row.iloc[2], "culture": row.iloc[3], "tags": row.iloc[4].split(","), "file_thumbnail": thumbnail[0], "files_model": model_files, "files_images": images, "thumbnail_desc": thumbnail_desc, "images_desc": images_desc})
                 files_filtered = [file for file in files_filtered if file not in files_row]
         return valid, errors, data_with_files
 
@@ -1045,6 +1268,68 @@ class BulkLoadingAPIView(generics.GenericAPIView):
         except Exception as e:
             logger.error(f"Error al eliminar archivos: {e}")
 
+    def get_existing_descriptors(self):
+        """
+        Retrieve existing descriptors from the database using DescriptorArtifactSerializer.
+
+        Returns:
+            tuple: A tuple containing two lists: one for descriptors and one for IDs.
+        """
+        artifacts = Artifact.objects.all()  # Obtén todos los artefactos
+        serializer = DescriptorArtifactSerializer(artifacts, many=True)  # Serializa los artefactos
+
+        # Aquí accedemos a los datos como una lista de diccionarios devueltos por to_representation
+        descriptors = []
+        ids = []
+        
+        for item in serializer.data:
+            print(item["ids"])
+            descriptors_str = item["descriptors"]
+            for descriptor_str in descriptors_str:
+                if isinstance(descriptor_str, str):
+                    try:
+                        descriptors_list = literal_eval(descriptor_str)
+                    except (ValueError, SyntaxError):
+                        descriptors_list = []
+                else:
+                    descriptors_list = descriptor_str
+
+                descriptor_array = np.array(descriptors_list)
+                descriptors.append(descriptor_array)
+            ids.extend(item["ids"])
+            print(f"Descriptor: {len(descriptors)}, IDs: {len(ids)}")
+        return descriptors, ids
+
+    def get_descriptor(self, path: str):
+        """
+        Get the descriptor of a file.
+        """
+        try:
+            num_zonas_x = 4
+            num_zonas_y = 4
+            num_bins_por_zona = 8
+            image = cv2.imread(os.path.normpath(self.temp_dir + path), cv2.IMREAD_GRAYSCALE)
+            img_eq = cv2.equalizeHist(image)
+            descriptor = []
+            for j in range(num_zonas_y):
+                desde_y = int(img_eq.shape[0] / num_zonas_y * j)
+                hasta_y = int(img_eq.shape[0] / num_zonas_y * (j + 1))
+                for i in range(num_zonas_x):
+                    desde_x = int(img_eq.shape[1] / num_zonas_x * i)
+                    hasta_x = int(img_eq.shape[1] / num_zonas_x * (i + 1))
+                    # recortar zona de la img
+                    zona = img_eq[desde_y:hasta_y, desde_x:hasta_x]
+                    # histograma de los pixeles de la zona
+                    histograma, limites = np.histogram(zona, bins=num_bins_por_zona, range=(0, 255))
+                    # normalizar histograma (bins suman 1)
+                    histograma = histograma / np.sum(histograma)
+                    # agregar descriptor de la zona al descriptor global
+                    descriptor.extend(histograma)
+            return np.array(descriptor)
+        except Exception as e:
+            logger.error(f"Error al obtener descriptor: {e}")
+            return []
+        
 
 class InstitutionAPIView(generics.ListCreateAPIView):
     """
@@ -1092,10 +1377,203 @@ class InstitutionAPIView(generics.ListCreateAPIView):
         except Exception as e:
             logger.error(f"Could not retrieve institutions:{e}")
             return Response({"detail": f"Error al obtener instituciones"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ArtifactBulkDetailAPIView(APIView):
+    """
+    View to handle bulk download requests, allowing both authenticated and non-authenticated requests.
+    """
+
+    def post(self, request, *args, **kwargs):
+        """
+        Handles POST requests for bulk download requests, creating BulkDownloadingRequest and
+        individual Request records for each artifact ID provided.
+        """
+        # if the user is not autenticated, use the form information, else use the user information and the data is avaible to download 
+        # immediately 
+        #if not request.user.is_authenticated:
+                is_authenticated = request.data["authenticated"]
+        print(request.data["authenticated"])
+        #print(is_authenticated)
+        #if not request.user.is_authenticated:
+        if not is_authenticated:
+            print("usuario no autenticado")
+            # extract the data from the form
+            name = request.data.get("fullName")
+            rut = request.data.get("rut")
+            email = request.data.get("email")
+            institution_id = request.data.get("institution")
+            comments = request.data.get("comments")
+            artifact_ids = request.data.get("artifacts", [])
+
+            # verificated if all the information is here.
+            if not all([name, rut, email, institution_id, artifact_ids]):
+                return Response(
+                    {"detail": "Faltan datos requeridos en la solicitud."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            try:
+                # get the institution
+                institution = get_object_or_404(Institution, id=institution_id)
+
+                # create the row in BulkDownloadingRequest
+                bulk_request = BulkDownloadingRequest.objects.create(
+                    name=name,
+                    rut=rut,
+                    email=email,
+                    comments=comments,
+                    is_registered=False,
+                    institution=institution,
+                    status="pending",
+                    admin_comments=None  
+                )
+                print("BulkDownloadingRequest creado:", bulk_request)
+                # create a request for each artifact that the person wants
+                for artifact_id in artifact_ids:
+                    artifact = get_object_or_404(Artifact, id=artifact_id)
+                    print(f"Artifact encontrado: {artifact}")
+                    Request.objects.create(
+                        artifact_request=bulk_request,
+                        artifact=artifact,
+                        status="pending"
+                    )
+                
+                # Log para confirmación de creación exitosa
+                logger.info("Bulk download request created successfully for non-authenticated user.")
+
+                # success response
+                return Response(
+                    {"detail": "Solicitud de descarga registrada exitosamente."},
+                    status=status.HTTP_201_CREATED
+                )
+
+            except Exception as e:
+                logger.error(f"Error al procesar la solicitud de descarga en masa: {e}")
+                return Response(
+                    {"detail": "Ocurrió un error al procesar la solicitud."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        else:
+            print("usuario autenticado")
+            token = request.headers.get("Authorization")
+            try:
+                token_instance = Token.objects.get(key=token.split(" ")[1])
+            except Token.DoesNotExist:
+                return Response(
+                    {"detail": "Se requiere iniciar sesión nuevamente"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            
+            username = token_instance.user
+            print(username)
+            try:
+                user = CustomUser.objects.get(username=username)
+            except CustomUser.DoesNotExist:
+                return Response(
+                    {"detail": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND
+                )
+            name = user.first_name + " " + user.last_name
+            try:
+                bulk_request = BulkDownloadingRequest.objects.create(
+                        name=name,
+                        rut=user.rut,
+                        email=user.email,
+                        is_registered=True,
+                        institution=user.institution if user.institution else None, 
+                        comments=None,
+                        status="accepted",
+                        admin_comments=None 
+                    )
+                print("BulkDownloadingRequest usuario autenticado creado:", bulk_request)
+                artifact_ids = request.data.get("artifacts", [])
+                for artifact_id in artifact_ids:
+                    artifact = get_object_or_404(Artifact, id=artifact_id)
+                    print(f"Artifact encontrado: {artifact}")
+                    Request.objects.create(
+                        artifact_request=bulk_request,
+                        artifact=artifact,
+                        status="accepted"
+                    )
+
+                # success response
+                return Response(
+                    {"detail": "Solicitud de descarga registrada exitosamente.",
+                     "bulk_request_id":bulk_request.id},
+                    status=status.HTTP_201_CREATED
+                )
+            except Exception as e:
+                logger.error(f"Error al procesar la solicitud de descarga en masa: {e}")
+                return Response(
+                    {"detail": "Ocurrió un error al procesar la solicitud."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+
+
+    def get(self, request, *args, **kwargs):
+        """
+        Handles GET requests for downloading multiple artifacts in a ZIP file.
+        This method will fetch all the artifacts linked to the BulkDownloadingRequest
+        associated with the authenticated user or by the request id if available.
+        """
+        reqnumber = kwargs.get("reqnumber")
+        print(reqnumber)
+        # Verify that the bulk_request_id is provided
+        if not reqnumber:
+            return Response(
+                {"detail": "Se requiere un ID de solicitud de descarga."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get the bulk download request and its associated artifacts
+        try:
+            #bulk_request = BulkDownloadingRequest.objects.get(id=reqnumber)
+            requests = Request.objects.filter(artifact_request_id=reqnumber)
+            print(requests)
+            artifacts = [req.artifact for req in requests]
+            print(artifacts)
+        except BulkDownloadingRequest.DoesNotExist:
+            return Response(
+                {"detail": "Solicitud de descarga no encontrada."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Create a ZIP file with the artifacts' files
+        buffer = BytesIO()
+        with zipfile.ZipFile(buffer, "w") as zipf:
+            for artifact in artifacts:
+                try:
+                    if artifact.id_thumbnail:
+                        zipf.write(
+                            artifact.id_thumbnail.path.path,
+                            f"thumbnail/{artifact.id_thumbnail.path}"
+                        )
+                    zipf.write(
+                        artifact.id_model.texture.path,
+                        f"model/{artifact.id_model.texture.name}"
+                    )
+                    zipf.write(
+                        artifact.id_model.object.path,
+                        f"model/{artifact.id_model.object.name}"
+                    )
+                    zipf.write(
+                        artifact.id_model.material.path,
+                        f"model/{artifact.id_model.material.name}"
+                    )
+                    images = Image.objects.filter(id_artifact=artifact.id)
+                    for image in images:
+                        zipf.write(image.path.path, f"model/{image.path}")
+                except Exception as e:
+                    logger.error(f"Error al agregar el archivo de {artifact}: {e}")
+
+        buffer.seek(0)
+        # Send the ZIP file in the response
+        response = HttpResponse(buffer, content_type="application/zip")
+        response["Content-Disposition"] = f"attachment; filename=bulk_artifacts_{reqnumber}.zip"
+        return response
+
         
-
-
-
 class RequestsAPIView(generics.ListCreateAPIView):
     """
     A view that provides a list of artifact requests.
