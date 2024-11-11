@@ -95,9 +95,6 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSIONS_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly"
     ],
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-    ],
 }
 
 
