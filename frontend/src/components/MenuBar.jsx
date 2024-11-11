@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AppBar, Toolbar, IconButton, Button, Box } from "@mui/material";
+import { AppBar, Toolbar, IconButton, Button, Box, styled } from "@mui/material";
 import { useToken } from "../hooks/useToken";
+import { API_URLS } from "../api";
 
 /**
  * MenuBar component represents the application's navigation bar.
@@ -13,6 +14,34 @@ const MenuBar = () => {
   const loggedIn = !!token;
   const navigate = useNavigate();
   const location = useLocation();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState(0);
+  const [admin, setAdmin] = useState(false);
+
+  useEffect(() => {
+    if (token) {
+      fetchNotifications();
+    }
+  }, [token]);
+  
+  const fetchNotifications = async () => {
+    const response = await fetch(`${API_URLS.DETAILED_ARTIFACT}/requests/notification`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      console.error("Failed to fetch notifications");
+      return;
+    }
+    const data = await response.json();
+    setNotifications(data.data);
+    setAdmin(true);
+    if (data.data > 0) {
+      setShowNotifications(true);
+    }
+  };
 
 /**
    * Navigates to the catalog page if not already on it.
@@ -50,7 +79,19 @@ const MenuBar = () => {
       state: { from: location },
     });
   }
-  
+
+/**
+ * Navigates to the download request page if not already on it.
+ */
+  const handleDownloadRequestClick = () => {
+    // If we are already in the download request page, do nothing
+    if (location.pathname === "/downloadrequest") {
+      return;
+    }
+    navigate("/downloadrequest", {
+      state: { from: location },
+    });
+  }
 /**
    * Navigates to the login page.
    */
@@ -69,6 +110,7 @@ const MenuBar = () => {
   };
 
   return (
+    <>
     <AppBar position="static">
       <Toolbar>
       {/* Left side of the AppBar */}
@@ -98,6 +140,14 @@ const MenuBar = () => {
           {/* Conditional rendering based on user authentication */}
           {loggedIn && (
             <>
+            {admin && (
+            <Button
+              onClick={handleDownloadRequestClick}
+              color="inherit"
+              style={{ marginRight: 55 }}
+            > Solicitudes de descarga
+            </Button>
+            )}
             <Button
               onClick={handleBulkLoadingClick}
               color="inherit"
@@ -126,7 +176,26 @@ const MenuBar = () => {
         </Box>
       </Toolbar>
     </AppBar>
+    {(showNotifications && notifications > 0) && (
+      <Modal>
+        <button onClick={() => setShowNotifications(false)}>X</button>
+        <p>Hay {notifications} {notifications === 1 ? "solicitud" : "solicitudes"} pendiente{notifications === 1 ? "" : "s"}</p>
+        <button onClick={handleDownloadRequestClick}>Ver solicitudes</button>
+      </Modal>
+    )}
+    </>
   );
 };
 
+const Modal = styled("div")({
+  position: "fixed",
+  bottom: 20,
+  right: 20,
+  backgroundColor: "#fff",
+  padding: "1rem",
+  borderRadius: "0.5rem",
+  boxShadow: "0 0 1rem rgba(0, 0, 0, 0.1)",
+  zIndex: 100,
+  display: "flex",
+});
 export default MenuBar;

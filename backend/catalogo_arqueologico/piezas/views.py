@@ -32,11 +32,13 @@ from rest_framework import permissions, generics, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+from django.db import transaction
 from rest_framework.views import APIView
 from django.db.models import Q
 from django.core.files import File
 from django.http import HttpResponse
 from django.conf import settings
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from .serializers import (
     ArtifactRequesterSerializer,
@@ -47,6 +49,8 @@ from .serializers import (
     ShapeSerializer,
     TagSerializer,
     CultureSerializer,
+    BulkDownloadingRequestSerializer,
+    BulkDownloadingRequestRequestSerializer
     DescriptorArtifactSerializer
 )
 from .models import (
@@ -1387,8 +1391,7 @@ class ArtifactBulkDetailAPIView(APIView):
         # if the user is not autenticated, use the form information, else use the user information and the data is avaible to download 
         # immediately 
         #if not request.user.is_authenticated:
-        
-        is_authenticated = request.data["authenticated"]
+                is_authenticated = request.data["authenticated"]
         print(request.data["authenticated"])
         #print(is_authenticated)
         #if not request.user.is_authenticated:
@@ -1569,3 +1572,191 @@ class ArtifactBulkDetailAPIView(APIView):
         response = HttpResponse(buffer, content_type="application/zip")
         response["Content-Disposition"] = f"attachment; filename=bulk_artifacts_{reqnumber}.zip"
         return response
+
+        
+class RequestsAPIView(generics.ListCreateAPIView):
+    """
+    A view that provides a list of artifact requests.
+
+    It extends Django REST Framework's ListCreateAPIView.
+
+    Attributes:
+        queryset: Specifies the queryset that this view will use to retrieve
+            the ArtifactRequester objects. It retrieves all ArtifactRequester objects.
+        serializer_class: Specifies the serializer class that should be used
+            for serializing the ArtifactRequester objects.
+        pagination_class: Specifies the pagination class that should be used
+        permission_classes: Defines the list of permissions that apply to
+            this view. It is set to allow only authenticated users with the
+            role of 'Funcionario' or 'Administrador' to access this view.
+    """
+
+    queryset = BulkDownloadingRequest.objects.all().order_by("-id")
+    serializer_class = BulkDownloadingRequestSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [
+        permissions.IsAuthenticated & IsAdminPermission
+    ]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            requests = self.get_queryset()
+            request_serializer = BulkDownloadingRequestSerializer(requests, many=True)
+            return Response({"data": request_serializer.data}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Could not retrieve requests:{e}")
+            return Response({"detail": f"Error al obtener solicitudes"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class RequestDetailAPIView(generics.RetrieveUpdateAPIView):
+    """
+    API view for retrieving and updating the status of requests associated
+    with a specific BulkDownloadingRequest.
+    """
+    serializer_class = BulkDownloadingRequestRequestSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [
+        permissions.IsAuthenticated & IsAdminPermission
+    ]
+
+    def get_queryset(self):
+        return BulkDownloadingRequest.objects.all()
+
+    def get(self, request, pk):
+        try:
+            requested = self.get_queryset().get(pk=pk)
+            serializer = BulkDownloadingRequestRequestSerializer(requested)
+            return Response({"data": serializer.data}, status=status.HTTP_200_OK)
+        except BulkDownloadingRequest.DoesNotExist:
+            return Response({"detail": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        
+    def put(self, request, pk):
+        try:
+            requests = request.data["requests"]
+            message = request.data["message"]
+            status_request = "pending"
+            with transaction.atomic():
+                for r in requests:
+                    request_artifact = Request.objects.get(pk=r["id"])
+                    request_artifact.status = r["status"]
+                    request_artifact.save()
+                    if status_request == "pending" and r["status"] == "accepted":
+                        status_request = "accepted"
+                    elif status_request == "pending" and r["status"] == "rejected":
+                        status_request = "rejected"
+                    elif (status_request == "accepted" and r["status"] == "accepted") or (status_request == "rejected" and r["status"] == "rejected"): 
+                        pass
+                    else:
+                        status_request = "partiallyaccepted"
+                bulk_download_request = BulkDownloadingRequest.objects.get(pk=pk)
+                bulk_download_request.status = status_request
+                bulk_download_request.admin_comments = message
+                bulk_download_request.save()
+                try:
+                    if status_request == "rejected":
+                        send_mail(
+                            "Solicitud de descarga masiva",
+                            f"Su solicitud de descarga masiva ha sido rechazada.\n"
+                            f"Comentarios: {message}",
+                            'no-reply@tudominio.com',
+                            [bulk_download_request.email],
+                        )
+                    else:
+                        send_mail(
+                            "Solicitud de descarga masiva",
+                            f"Su solicitud de descarga masiva ha sido {status_request}.\n"
+                            f"Comentarios: {message} \n"
+                            f"Link de descarga: {'http://localhost:8000/api/catalog/artifact/'+str(pk)+'/request/download' if settings.DEBUG else 'https://catalogo.dcc.uchile.cl/api/catalog/artifact/'+str(pk)+'/request/download'}"
+                            f"este link estará disponible para descargar solo una vez",
+                            'no-reply@tudominio.com',
+                            [bulk_download_request.email],
+                        )
+                except Exception as e:
+                    logger.error(f"Error al enviar correo: {e}")
+                    return Response({"detail": "Error al enviar correo"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+            return Response({"data": "ok"}, status=status.HTTP_200_OK)
+        except BulkDownloadingRequest.DoesNotExist:
+            return Response({"detail": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+
+            logger.error(f"Error al actualizar solicitud: {e}")
+            return Response({"detail": "Error al actualizar solicitud"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RequestDownloadAPIView(generics.GenericAPIView):
+    """
+    API view for downloading the artifacts associated with a specific BulkDownloadingRequest.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        try:
+            bulk_download_request = BulkDownloadingRequest.objects.get(pk=pk)
+            if bulk_download_request.status == "pending":
+                return Response({"detail": "Solicitud pendiente"}, status=status.HTTP_400_BAD_REQUEST)
+            elif bulk_download_request.status == "rejected":
+                return Response({"detail": "Solicitud rechazada"}, status=status.HTTP_400_BAD_REQUEST)
+            elif bulk_download_request.status == "downloaded":
+                return Response({"detail": "Solicitud ya descargada"}, status=status.HTTP_400_BAD_REQUEST)
+            requests = Request.objects.filter(artifact_request_id=pk, status="accepted")
+            artifacts = [r.artifact for r in requests]
+            buffer = BytesIO()
+            print(artifacts)
+            with zipfile.ZipFile(buffer, "w") as zipf:
+                for artifact in artifacts:
+                    if artifact.id_thumbnail:
+                        zipf.write(
+                            artifact.id_thumbnail.path.path,
+                            f"thumbnail/{artifact.id_thumbnail.path}",
+                        )
+
+                    zipf.write(
+                        artifact.id_model.texture.path,
+                        f"model/{artifact.id_model.texture.name}",
+                    )
+                    zipf.write(
+                        artifact.id_model.object.path,
+                        f"model/{artifact.id_model.object.name}",
+                    )
+                    zipf.write(
+                        artifact.id_model.material.path,
+                        f"model/{artifact.id_model.material.name}",
+                    )
+
+                    images = Image.objects.filter(id_artifact=artifact.id)
+                    for image in images:
+                        zipf.write(image.path.path, f"model/{image.path}")
+            bulk_download_request.status = "downloaded"
+            bulk_download_request.save()
+        except Exception as e:
+            logger.error(f"Error al descargar solicitud: {e}")
+            return Response({"detail": "Error al descargar solicitud"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        buffer.seek(0)
+
+        response = HttpResponse(buffer, content_type="application/zip")
+        response["Content-Disposition"] = f"attachment; filename=request_{pk}.zip"
+        return response
+
+class RequestsNotificationAPIView(generics.GenericAPIView):
+    """
+    API view for sending the number of pending BulkDownloadingRequest to the frontend 
+    """
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [
+        permissions.IsAuthenticated & IsAdminPermission
+    ]
+
+    def get(self, request):
+        """
+        Handles GET requests.
+        """
+        try:
+            requests = BulkDownloadingRequest.objects.filter(status="pending")
+            return Response({"data": len(requests)}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error al obtener solicitudes pendientes: {e}")
+            return Response({"detail": "Error al obtener solicitudes pendientes"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        

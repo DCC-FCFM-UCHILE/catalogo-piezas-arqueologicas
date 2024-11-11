@@ -70,29 +70,30 @@ const Catalog = () => {
 
   return (
     <Container>
-      <Button variant="outlined" color="secondary" onClick={changeSelectionMode}>
-            Selección Descarga Artefactos
-      </Button>
-      {isSelectionMode && <Button variant="outlined" color="secondary" onClick={changeDetailsOpen}>
-          Ver Preselección
-      </Button>}
       {/* Title of the catalog */}
       <CustomTypography variant="h1">Catálogo</CustomTypography>
       {/* Component for filtering artifacts */}
       <CatalogFilter filter={filter} setFilter={setFilter} options = {options} />
-  {/* Button to add new artifact (visible to logged-in users) */}
-      {loggedIn && (
-        <CustomBox>
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            onClick={handleRedirect}
-          >
-            Agregar pieza
+        <CustomButtonBox>
+          {/* Button to add new artifact (visible to logged-in users) */}
+          {loggedIn && (
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              onClick={handleRedirect}
+            >
+              Agregar pieza
+            </Button>
+            )}
+          {/* Button to change selection mode */}
+          <Button variant="outlined" color="secondary" size="large" onClick={changeSelectionMode}>
+            Seleccionar Artefactos Para Descargar
           </Button>
-        </CustomBox>
-      )}
+          {isSelectionMode && <Button variant="outlined" color="secondary" size="large" onClick={changeDetailsOpen}>
+            Ver Artefactos Seleccionados
+          </Button>}
+        </CustomButtonBox>
        {/* Loading state display with skeleton cards */}
       {loading ? (
         <Box>
@@ -161,6 +162,17 @@ const CustomBox = styled(Grid)(({ theme }) => ({
   gap: theme.spacing(2),
   marginBottom: theme.spacing(3),
 }));
+
+// Styled Box component for containing the button
+const CustomButtonBox = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "row",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: theme.spacing(2),
+  marginBottom: theme.spacing(3),
+}));
+
 //Custom the request details information 
 const RequestDetailsPanel = styled(Box)(({ theme, open }) => ({
   position: "fixed",

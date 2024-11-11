@@ -7,6 +7,8 @@ import NotFound from "./NotFound";
 import { useToken } from "../hooks/useToken";
 import { CircularProgress } from "@mui/material";
 import BulkLoading from "../pages/Catalog/BulkLoading";
+import DownloadRequest from "../pages/RequestAdmin/DownloadRequest";
+import RequestDetail from "../pages/RequestAdmin/RequestDetail";
 
 // Lazy-loaded components
 const Home = lazy(() => import("../pages/Home/Home"));
@@ -60,6 +62,8 @@ const Layout = () => {
             <Route path="/catalog/new" element={<CreateArtifact />} />
             <Route path="/catalog/bulkloading" element={<BulkLoading />} />
             <Route path="/catalog/:artifactId/edit" element={<EditArtifact />} />
+            <Route path="/downloadrequest" element={<DownloadRequest />} />
+            <Route path="/downloadrequest/:requestId" element={<RequestDetail />} />
           </Route>
           <Route path="*" element={<NotFound />} /> {/* Catch-all route for 404 */}
         </Routes>

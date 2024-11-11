@@ -38,6 +38,8 @@ from .models import (
     Thumbnail,
     Image,
     Institution,
+    BulkDownloadingRequest,
+    Request
 )
 
 logger = logging.getLogger(__name__)
@@ -384,7 +386,6 @@ class ArtifactRequesterSerializer(serializers.ModelSerializer):
     """
     Serializer for the ArtifactRequester model.
     """
-
     class Meta:
         """
         Meta class for the ArtifactRequesterSerializer.
@@ -395,6 +396,100 @@ class ArtifactRequesterSerializer(serializers.ModelSerializer):
         """
 
         model = ArtifactRequester
+        fields = "__all__"
+        extra_fields = ["request_count"]
+
+class BulkDownloadingRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the BulkLoadingAPIView.
+    """
+    request_count = serializers.SerializerMethodField()
+    class Meta:
+        """
+        Meta class for the BulkDownloadingRequestSerializer.
+
+        Attributes:
+        - model: The BulkDownloadingRequest model to serialize.
+        - fields: The fields to include in the serialized data.
+        """
+
+        model = BulkDownloadingRequest
+        fields = "__all__"
+
+    def get_request_count(self, instance):
+        """
+        Method to obtain the number of requests for a bulk download.
+
+        Args:
+        - instance: The instance of the bulk download request.
+
+        Returns:
+        - The number of requests for the bulk download.
+        """
+        return instance.get_request_count()
+
+
+class RequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Request model and its related fields.
+    """
+    thumbnail = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    class Meta:
+        """
+        Meta class for the RequestSerializer.
+
+        Attributes:
+        - model: The Request model to serialize.
+        - fields: The fields to include in the serialized data.
+        """
+
+        model = Request
+        fields = "__all__"
+
+    def get_thumbnail(self, instance):
+        """
+        Method to obtain the thumbnail of the request.
+
+        Args:
+        - instance: The instance of the request.
+
+        Returns:
+        - The URL of the thumbnail of the request.
+        """
+        if instance.artifact.id_thumbnail:
+            return instance.get_thumbnail()
+        else:
+            return None
+    
+    def get_description(self, instance):
+        """
+        Method to obtain the description of the request.
+
+        Args:
+        - instance: The instance of the request.
+
+        Returns:
+        - The description of the request.
+        """
+        return instance.get_description()
+    
+
+class BulkDownloadingRequestRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the BulkDownloadingRequest with his RequestSerializer.
+    """
+    requests = RequestSerializer(many=True)
+    class Meta:
+        """
+        Meta class for the BulkDownloadingRequestRequestSerializer.
+
+        Attributes:
+        - model: The BulkDownloadingRequest model to serialize.
+        - fields: The fields to include in the serialized data.
+        """
+
+        model = BulkDownloadingRequest
         fields = "__all__"
 
 

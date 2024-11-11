@@ -594,6 +594,14 @@ class BulkDownloadingRequest(models.Model):
             str: Name of the requester.
         """
         return self.name
+    
+    def get_request_count(self):
+        """
+        Returns the number of artifacts requested in the bulk request.
+        Returns:
+            int: Number of artifacts requested.
+        """
+        return self.requests.count()
 
 class Request(models.Model):
     """
@@ -624,4 +632,19 @@ class Request(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         related_name="request")
-
+    
+    def get_thumbnail(self):
+        """
+        Returns the thumbnail of the artifact.
+        Returns:
+            str: Path to the thumbnail.
+        """
+        return self.artifact.id_thumbnail.path.url
+    
+    def get_description(self):
+        """
+        Returns the description of the artifact.
+        Returns:
+            str: Description of the artifact.
+        """
+        return self.artifact.description
