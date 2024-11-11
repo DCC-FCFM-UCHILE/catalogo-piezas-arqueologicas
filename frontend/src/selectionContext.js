@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState,useEffect } from 'react';
 
+/*
+This js provide the way to handle de seleccion of many artifats for download. 
+The components use selectedArtifacts. 
+*/
+
 const SelectionContext = createContext();
 
 export const useSelection = () => {

@@ -23,12 +23,14 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
     fullName: "",
     rut: "",
     email: "",
+    repeatEmail: "",
     institution: { id: "", value: "" },
     comments: "",
   });
   const [rutError, setRutError] = useState(false); // State for RUT validation error
   const [loading, setLoading] = useState(true); // State for loading state
   const [errors, setErrors] = useState(false); // State for general errors
+  const [emailMatchError, setEmailMatchError] = useState(false);  // Error state for email mismatch
   useEffect(() => {
     console.log("Artifact info en el formulario:", artifactInfoList);
   }, [artifactInfoList]); 
@@ -63,8 +65,19 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
         ...formValues,
         [name]: value,
       });
-    };
 
+       // Check if emails match on every change to email fields
+       if (name === "email" || name === "repeatEmail") {
+        checkEmailsMatch(value, name);
+      }
+    };
+    
+// Function to check if email and repeatEmail match
+const checkEmailsMatch = (value, fieldName) => {
+  const email = fieldName === "email" ? value : formValues.email;
+  const repeatEmail = fieldName === "repeatEmail" ? value : formValues.repeatEmail;
+  setEmailMatchError(email !== repeatEmail);  // Update error state if emails don't match
+};
  // Handle download request
  const handleDownloadRequest = async (formValues) => {
     try {
@@ -107,13 +120,18 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
       event.preventDefault();
       console.log('tratando de enviar formuilario')
       // Assuming formValues contains a 'rut' field that needs to be validated
+
+      if (emailMatchError) {
+        addAlert("Los correos electrónicos no coinciden.");
+        return;
+      }
       /*
       if (!validateRut(formValues.rut)) {
         setRutError(true);
         console.log('malo el rut')
         return; // Stop the form submission process
       }
-        */
+      */
       // Reset RUT error if validation passes
       setRutError(false);
       // Proceed with download process
@@ -158,7 +176,7 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
                 placeholder="123456789"
                 value={formValues.rut}
                 error={rutError} // Show error style if there's a RUT error
-                helperText={"Sin puntos ni guión"} // Display the RUT error message
+                helperText={rutError ? "RUT inválido" : "Sin puntos ni guión"} // Display the RUT error message
               />
             </Stack>
 
@@ -173,6 +191,21 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
                 type="email"
                 margin="normal"
                 value={formValues.email}
+              />
+            </Stack>
+            <Stack>
+            <InputLabel>
+                <b>Repetir Correo Electrónico *</b>
+              </InputLabel>
+              <TextField
+                required
+                id="repeatEmail"
+                name="repeatEmail"
+                type="email"
+                margin="normal"
+                value={formValues.repeatEmail}
+                error={emailMatchError}  // Show error if emails don't match
+                helperText={emailMatchError ? "Los correos electrónicos no coinciden" : ""}
               />
             </Stack>
             <Stack>
@@ -276,8 +309,8 @@ const BulkDownloadArtifactForm  = ({ artifactInfoList, handleClose }) => {
 const validateRut = (rutStr) => {
   // Remove dots and dashes from the RUT
   let rut = rutStr.replace(/\./g, "").replace(/-/g, "").toUpperCase(); // Normalize the RUT to uppercase and remove dots and dashes
-   // Check if the RUT has exactly 9 characters (8 digits + 1 verification digit)
-  if (rut.length !== 9) {
+   // 
+  if (rut.length > 9 ) {
     return false;
   }
   const rutBody = rut.slice(0, 8); // The first 8 digits
