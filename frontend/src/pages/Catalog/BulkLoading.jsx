@@ -171,13 +171,79 @@ const BulkLoading = () => {
                         </Typography>
                         <br />
                         <Typography variant="p">
-                            3. Subir la plantilla de Excel y el archivo ZIP con la información multimedia.
+                            3. Subir la plantilla de Excel.
                         </Typography>
                         <br />
                         <Typography variant="p">
-                            4. Hacer clic en el botón "Subir".
+                            4. Subir archivo ZIP con la información multimedia.
+                        </Typography>
+                        <br />
+
+                        {/* Caja para el formato del archivo ZIP con colores personalizados */}
+                        <CustomBox
+                            sx={{
+                                p: 2,
+                                border: '1px solid #d1d5db', // borde gris suave
+                                borderRadius: '8px',
+                                backgroundColor: '#e0f2fe', // azul claro
+                                maxWidth: '500px',
+                                mx: 'auto',
+                                mt: 2
+                            }}
+                        > 
+                            <Typography variant="subtitle1" gutterBottom>
+                                <b>Formato requerido para la carpeta dentro del ZIP:</b> 
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 2 }}>
+                                multimedia/
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 4 }}>
+                                ├── thumbnails/
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 6 }}>
+                                ├── 0001.png
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 6 }}>
+                                └── 0002.png
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 4 }}>
+                                └── models/
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 6 }}>
+                                ├── 0001.obj
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 6 }}>
+                                ├── 0001.obj.jpg
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 6 }}>
+                                ├── 0001.obj.mtl
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 6 }}>
+                                ├── 0002.obj
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 6 }}>
+                                ├── 0002.obj.jpg
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 6 }}>
+                                └── 0002.obj.mtl
+                            </Typography>
+                            <Typography variant="subtitle1" gutterBottom>
+                                <b>Carpeta thumbnails:</b> contiene las previsualizaciones de las piezas. Es necesario que los nombres de los archivos coincidan con los ids del Excel.
+                            </Typography>
+                            <Typography variant="subtitle1" gutterBottom>
+                                <b>Carpeta models:</b> contiene los modelos 3D (objeto .obj, textura .jpg, material .mtl). Los nombres deben coincidir con los ids del Excel.
+                            </Typography>
+                            <Typography variant="subtitle1" gutterBottom>
+                                <b>Agregar imágenes:</b> si se desea agregar imágenes para un artefacto los nombres deben tener como prefijo el id del artefacto.
+                            </Typography>
+                        </CustomBox>
+
+                        <br />
+                        <Typography variant="p">
+                            5. Hacer clic en el botón "Subir".
                         </Typography>
                     </CustomBox>
+
                     <Button
                             variant="contained"
                             color="primary"
