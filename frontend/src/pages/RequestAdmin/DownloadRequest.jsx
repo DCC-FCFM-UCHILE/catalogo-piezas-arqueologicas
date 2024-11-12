@@ -3,9 +3,12 @@ import { API_URLS } from "../../api";
 import { useToken } from "../../hooks/useToken";
 import { Button, List, ListItem, ListItemButton, ListItemText, ListItemIcon, Divider, Typography, Box, IconButton } from "@mui/material";
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
+import CloseIcon from '@mui/icons-material/Close';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import DoneIcon from '@mui/icons-material/Done';
 
 const DownloadRequest = () => {
     const { token } = useToken();
@@ -44,6 +47,38 @@ const DownloadRequest = () => {
         setRequests(data.data);
         console.log(data.data);
     };
+    const translateStatus = (status) => {
+        switch (status.toLowerCase()) {
+            case "accepted":
+                return "Aceptada";
+            case "pending":
+                return "Pendiente";
+            case "partiallyaccepted":
+                return "Parcialmente Aceptada";
+            case "rejected":
+                return "Rechazada";
+            case "downloaded":
+                return "Descargada";
+            default:
+                return status;
+        }
+    };
+    const getStatusIcon = (status) => {
+        switch (status.toLowerCase()) {
+            case "accepted":
+                return <DoneIcon />;
+            case "pending":
+                return <HourglassEmptyIcon />;
+            case "partiallyaccepted":
+                return <DoneIcon />;
+            case "rejected":
+                return <CloseIcon />;
+            case "downloaded":
+                return <CheckCircleIcon />;
+            default:
+                return <MoreHorizIcon />;
+        }
+    };
     return (
         <div>
             <Box textAlign="left" py={3} mx={4}>
@@ -52,15 +87,6 @@ const DownloadRequest = () => {
                 </Typography>
             </Box>
             <Divider />
-            {filteredRequests.map((request) => (
-                <div key={request.id}>
-                    <p>{request.name}</p>
-                    <p>{request.email}</p>
-                    <p>Solicita {request.request_count} {request.request_count == 1 ? "pieza" : "piezas"}.</p>
-                    <p>{request.status}</p>
-                    <a href={"./downloadrequest/" + request.id}>Ver detalles</a>
-                </div>
-            ))}
             <Box display="flex" flexDirection="row">
                 <Box width="20%" padding={2}>
                     <List>
@@ -90,24 +116,28 @@ const DownloadRequest = () => {
                 <Box width="80%" padding={2} my={2}>
                     <Typography variant="h5">Solicitudes</Typography>
                     <List>
-                        {filteredRequests.map((request, index) => (
-                            <React.Fragment key={index}>
+                    {/* {filteredRequests.map((request) => (
+                <div key={request.id}>
+                    <p>{request.name}</p>
+                    <p>{request.email}</p>
+                    <p>Solicita {request.request_count} {request.request_count == 1 ? "pieza" : "piezas"}.</p>
+                    <p>{request.status}</p>
+                    <a href={"./downloadrequest/" + request.id}>Ver detalles</a>
+                </div>
+            ))} */}
+                        {filteredRequests.map((request) => (
+                            <React.Fragment>
                                 <ListItem>
+                                    <IconButton component="a" href={`./downloadrequest/${request.id}`} sx={{marginRight: 2} }>
+                                        <VisibilityIcon />
+                                    </IconButton>
                                     <ListItemText
-                                        primary={`${request.user}: Solicita ${request.pieces} piezas.`}
-                                        secondary={`Estado: ${request.status}`}
+                                        primary={`${request.name}: Solicita ${request.request_count} ${request.request_count === 1 ? "pieza" : "piezas"}`}
+                                        secondary={`Estado: ${translateStatus(request.status)}`}
                                     />
                                     <ListItemIcon>
-                                        <IconButton>
-                                            <CheckCircleIcon />
-                                        </IconButton>
-                                        <IconButton>
-                                            <CancelIcon />
-                                        </IconButton>
-                                        <IconButton>
-                                            <MoreHorizIcon />
-                                        </IconButton>
-                                    </ListItemIcon>
+                                        {getStatusIcon(request.status)}
+                                    </ListItemIcon>   
                                 </ListItem>
                                 <Divider />
                             </React.Fragment>
