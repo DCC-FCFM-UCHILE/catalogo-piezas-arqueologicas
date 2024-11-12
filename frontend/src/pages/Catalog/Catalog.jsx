@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 
-
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -87,8 +86,8 @@ const Catalog = () => {
             </Button>
             )}
           {/* Button to change selection mode */}
-          <Button variant="outlined" color="secondary" size="large" onClick={changeSelectionMode}>
-            Seleccionar Artefactos Para Descargar
+          <Button variant={isSelectionMode ? "contained" : "outlined"} color="secondary" size="large" onClick={changeSelectionMode}>
+          {isSelectionMode ? "Desactivar Modo Selección" : "Seleccionar Artefactos Para Descargar"}
           </Button>
           {isSelectionMode && <Button variant="outlined" color="secondary" size="large" onClick={changeDetailsOpen}>
             Ver Artefactos Seleccionados
