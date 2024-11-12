@@ -50,7 +50,7 @@ from .serializers import (
     TagSerializer,
     CultureSerializer,
     BulkDownloadingRequestSerializer,
-    BulkDownloadingRequestRequestSerializer
+    BulkDownloadingRequestRequestSerializer,
     DescriptorArtifactSerializer
 )
 from .models import (
@@ -1391,7 +1391,7 @@ class ArtifactBulkDetailAPIView(APIView):
         # if the user is not autenticated, use the form information, else use the user information and the data is avaible to download 
         # immediately 
         #if not request.user.is_authenticated:
-                is_authenticated = request.data["authenticated"]
+        is_authenticated = request.data["authenticated"]
         print(request.data["authenticated"])
         #print(is_authenticated)
         #if not request.user.is_authenticated:
