@@ -105,23 +105,23 @@ const DownloadRequest = () => {
             <Divider />
             <Box display="flex" flexDirection="row">
                 <Box width="20%" padding={2}>
-                    <List>
-                        <ListItemButton onClick={() => setFilter("")}>
+                <List>
+                        <ListItemButton selected={filter === ""} onClick={() => setFilter("")}>
                             <ListItemText primary="Todas" />
                         </ListItemButton>
-                        <ListItemButton onClick={() => setFilter("pending")}>
+                        <ListItemButton selected={filter === "pending"} onClick={() => setFilter("pending")}>
                             <ListItemText primary="Pendientes" />
                         </ListItemButton>
-                        <ListItemButton onClick={() => setFilter("accepted")}>
+                        <ListItemButton selected={filter === "accepted"} onClick={() => setFilter("accepted")}>
                             <ListItemText primary="Aceptadas" />
                         </ListItemButton>
-                        <ListItemButton onClick={() => setFilter("partiallyaccepted")}>
+                        <ListItemButton selected={filter === "partiallyaccepted"} onClick={() => setFilter("partiallyaccepted")}>
                             <ListItemText primary="Parcialmente aceptadas" />
                         </ListItemButton>
-                        <ListItemButton onClick={() => setFilter("rejected")}>
+                        <ListItemButton selected={filter === "rejected"} onClick={() => setFilter("rejected")}>
                             <ListItemText primary="Rechazadas" />
                         </ListItemButton>
-                        <ListItemButton onClick={() => setFilter("downloaded")}>
+                        <ListItemButton selected={filter === "downloaded"} onClick={() => setFilter("downloaded")}>
                             <ListItemText primary="Descargadas" />
                         </ListItemButton>
                     </List>
@@ -132,15 +132,6 @@ const DownloadRequest = () => {
                 <Box width="80%" padding={2} my={2}>
                     <Typography variant="h5">{getHeaderText(filter)}</Typography>
                     <List>
-                    {/* {filteredRequests.map((request) => (
-                <div key={request.id}>
-                    <p>{request.name}</p>
-                    <p>{request.email}</p>
-                    <p>Solicita {request.request_count} {request.request_count == 1 ? "pieza" : "piezas"}.</p>
-                    <p>{request.status}</p>
-                    <a href={"./downloadrequest/" + request.id}>Ver detalles</a>
-                </div>
-            ))} */}
                         {filteredRequests.map((request) => (
                             <React.Fragment>
                                 <ListItem>
