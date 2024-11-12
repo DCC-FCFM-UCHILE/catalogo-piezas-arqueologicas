@@ -234,7 +234,7 @@ const BulkLoading = () => {
                                 <b>Carpeta models:</b> contiene los modelos 3D (objeto .obj, textura .jpg, material .mtl). Los nombres deben coincidir con los ids del Excel.
                             </Typography>
                             <Typography variant="subtitle1" gutterBottom>
-                                <b>Agregar imágenes:</b> si se desea agregar imágenes para un artefacto los nombres deben tener como prefijo el id del artefacto.
+                                <b>Agregar imágenes:</b> si se desea agregar imágenes para un artefacto los nombres deben tener como prefijo el id del artefacto y ser agregados en la carpeta models.
                             </Typography>
                         </CustomBox>
 
