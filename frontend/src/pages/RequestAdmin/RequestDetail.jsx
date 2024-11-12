@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { API_URLS } from "../../api";
 import { useToken } from "../../hooks/useToken";
-import { styled } from "@mui/material";
+import { Button, Checkbox, CircularProgress, Divider, styled } from "@mui/material";
+import CheckCard from "./components/CheckCard";
+import StatusCard from "./components/StatusCard";
 
 
 const RequestDetail = () => {
     const [request, setRequest] = useState({});
+    const [loading, setLoading] = useState(false);
     const [requested, setRequested] = useState([]);
     const [msg, setMsg] = useState("");
     const [showModal, setShowModal] = useState(false);
@@ -61,7 +64,7 @@ const RequestDetail = () => {
     };
 
     const handleSubmit = async () => {
-        console.log(requested);
+        setLoading(true);
         const response = await fetch(`${API_URLS.DETAILED_ARTIFACT}/request/${request.id}`, {
             method: "PUT",
             headers: {
@@ -74,11 +77,14 @@ const RequestDetail = () => {
             }),
         });
         if (!response.ok) {
-            console.error("Failed to update requests");
+            setLoading(false);
+            console.error("Failed to update request");
             return;
         }
         const data = await response.json();
-        console.log(data);
+        await fetchRequest(request.id);
+        setShowModal(false);
+        setLoading(false);
     }
 
     const handleSubmitReject = async () => {
@@ -91,90 +97,92 @@ const RequestDetail = () => {
     
     return (
         <div>
-            <button onClick={() => window.history.back()}>Volver</button>
+            <Button onClick={() => window.history.back()}>Volver</Button>
         <h1>Detalle Solicitud: {request.name}</h1>
         <p>Estado: {request.status}</p>
+        <p>Mensaje del usuario: {request.comments}</p>
         <p>Número de piezas solicitadas: {requested.length}</p>
+        <Divider />
         {request.status == "pending" ? 
         <>
-            <button onClick={handleAcceptAll}>
-                Aceptar todos
-            </button>
+            <InLineDiv>
+                <p></p>
+                <p></p>
+                <p>Aceptar todo</p>
+                <Checkbox
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        if (requested.every((r) => r.status === "accepted")) {
+                            setRequested((prevRequests) =>
+                                prevRequests.map((request) => ({ ...request, status: "rejected" }))
+                            );
+                        } else {
+                        handleAcceptAll();
+                        }
+                    }}
+                    checked={requested.every((r) => r.status === "accepted")}
+                />
+            </InLineDiv>
             {requested.map((r) => (
-                <Tile key={r.id}>
-                    <p>{r.artifact}</p>
-                    <p>{r.description}</p>
-                    <img 
-                        src={`${API_URLS.BASE}${r.thumbnail}`}
-                        alt={r.artifact} /> {/* falta poner el ojo para que  */}
-                    <CheckBox
-                        onClick={() => handleStatusChange(r.id, r.status)}
-                        value={r.status == "accepted"}
-                    />
-                </Tile>
+                <CheckCard key={r.id} r={r} handleStatusChange={handleStatusChange} />
             ))}
 
-            <button onClick={()=> setShowModal(true)}>
-                Aceptar seleccionados
-            </button>
-            <button onClick={handleSubmitReject}>
-                Rechazar todo
-            </button>
+            <ButtonsContainer>
+                <GreenButton onClick={() => setShowModal(true)}>
+                        Aceptar seleccionados
+                    </GreenButton>
+                <RedButton onClick={handleSubmitReject}>
+                    Rechazar todo
+                </RedButton>
+            </ButtonsContainer>
         </> :
         <>
             {requested.map((r) => (
-                <Tile key={r.id}>
-                    <p>{r.artifact}</p>
-                    <p>{r.description}</p>
-                    <img 
-                        src={`${API_URLS.BASE}${r.thumbnail}`}
-                        alt={r.artifact} />
-                    <p>{r.status}</p>
-                </Tile>
+                <StatusCard key={r.id} r={r} />
             ))}
         </>
         }
 
         {showModal && (
             <Modal>
+                {loading ?
                 <ModalContent>
-                    <p>Introduce un mensaje para el usuario con el motivo de el rechazo o aceptación de los objetos seleccionados</p>
-                    <textarea
-                        placeholder="Mensaje"
-                        value={msg}
-                        onChange={(e) => setMsg(e.target.value)}
-                        style={{minHeight: "5rem"}}
-                        maxLength={500}
-                    />
-                    <br />
-                    <button onClick={() => setShowModal(false)}>Cancelar</button>
-                    <br />
-                    <button onClick={handleSubmit}>Enviar</button>
+                    <CircularProgress size={80} />
+                    <p>Enviando...</p>
                 </ModalContent>
+                :
+                <ModalContent>
+                    {requested.every((r) => r.status === "accepted") ?
+                    <p>¿Estás seguro de que deseas aceptar los objetos seleccionados?</p>
+                    :
+                    <>
+                        <p>Introduce un mensaje para el usuario con el motivo de el rechazo o aceptación de los objetos seleccionados</p>
+                        <textarea
+                            placeholder="Mensaje"
+                            value={msg}
+                            onChange={(e) => setMsg(e.target.value)}
+                            style={{minHeight: "5rem"}}
+                            maxLength={500}
+                        />
+                    </>
+                    }
+                    <br />
+                    <RedButton onClick={() => setShowModal(false)}>Cancelar</RedButton>
+                    <br />
+                    <GreenButton onClick={handleSubmit}>Enviar</GreenButton>
+                </ModalContent>
+                }
             </Modal>
         )}
         </div>
     );
 }
 
-const CheckBox = ({ onClick, value }) => (
-    <input
-        type="checkbox"
-        onClick={onClick}
-        checked={value}
-        readOnly
-    />
-);
-
-const Tile = styled("div")({
-    border: "1px solid #000",
-    padding: "1rem",
-    margin: "1rem",
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "space-between",
+const InLineDiv = styled("div")({
+    display: "grid",
+    gridTemplateColumns: "40px 40px 2fr 20px",
     alignItems: "center",
-    borderRadius: "0.5rem",
+    width: "90%",
 });
 
 const Modal = styled("div")({
@@ -197,6 +205,30 @@ const ModalContent = styled("div")({
     flexDirection: "column",
     height: "20rem",
     width: "20rem",
+});
+
+const ButtonsContainer = styled("div")({
+    marginTop: "1rem",
+    display: "flex",
+    justifyContent: "space-evenly",
+    width: "100%",
+});
+
+const RedButton = styled(Button)({
+    backgroundColor: "#e57373",  // Rojo claro
+    color: "white",
+    "&:hover": {
+        backgroundColor: "#d32f2f",  // Rojo más intenso al pasar el cursor
+    },
+});
+
+// Botón verde refinado
+const GreenButton = styled(Button)({
+    backgroundColor: "#81c784",  // Verde claro
+    color: "white",
+    "&:hover": {
+        backgroundColor: "#388e3c",  // Verde más intenso al pasar el cursor
+    },
 });
 
 export default RequestDetail;
