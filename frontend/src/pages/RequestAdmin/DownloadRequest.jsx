@@ -79,6 +79,22 @@ const DownloadRequest = () => {
                 return <MoreHorizIcon />;
         }
     };
+    const getHeaderText = (filter) => {
+        switch (filter) {
+            case "accepted":
+                return "Solicitudes Aceptadas";
+            case "pending":
+                return "Solicitudes Pendientes";
+            case "partiallyaccepted":
+                return "Solicitudes Parcialmente Aceptadas";
+            case "rejected":
+                return "Solicitudes Rechazadas";
+            case "downloaded":
+                return "Solicitudes Descargadas";
+            default:
+                return "Todas las Solicitudes";
+        }
+    };
     return (
         <div>
             <Box textAlign="left" py={3} mx={4}>
@@ -114,7 +130,7 @@ const DownloadRequest = () => {
                 <Divider orientation="vertical" flexItem />
 
                 <Box width="80%" padding={2} my={2}>
-                    <Typography variant="h5">Solicitudes</Typography>
+                    <Typography variant="h5">{getHeaderText(filter)}</Typography>
                     <List>
                     {/* {filteredRequests.map((request) => (
                 <div key={request.id}>
