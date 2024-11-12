@@ -2,17 +2,19 @@ import React from "react";
 import { Box, Typography, Button, List, ListItem, Divider, Container } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useSelection } from "../../../selectionContext";
-import BulkDownloadArtifactForm from './BulkDownloadingForm';
-import DownloadArtifactButton from "../../ArtifactDetails/components/DownloadArtifactButton";
 import { API_URLS } from "../../../api";
 import { useToken } from "../../../hooks/useToken";
 import { useSnackBars } from "../../../hooks/useSnackbars";
+import { useNavigate } from "react-router-dom";
+
+
 
 const RequestDetails = () => {
-  const { selectedArtifacts, setEmptyList } = useSelection();
+  const { selectedArtifacts, setEmptyList,removeById } = useSelection();
   const { token } = useToken();
   const loggedIn = !!token;
   const { addAlert } = useSnackBars();
+  const navigate = useNavigate();
 
   const handleDownload = async () => {
     try {
@@ -62,7 +64,6 @@ const RequestDetails = () => {
       link.click();
       link.remove();
       addAlert("Descarga exitosa");
-
     } catch (error) {
       addAlert("Error al descargar pieza");
     }
@@ -88,17 +89,16 @@ const RequestDetails = () => {
         <List sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: '60vh', marginBottom: 2 }}>
           {selectedArtifacts.map((artifact) => (
             <React.Fragment key={artifact.id}>
-              <ListItem>
-                <Typography variant="body1" sx={{ marginRight: 1 }}>Pieza {artifact.id}</Typography>
-                
-                {/* Añadimos las imágenes pequeñas aquí */}
-                <IconContainer>
-                  <img src='/eye.svg' alt="Icono 1" width={16} height={16} style={{ marginRight: 4 }} />
-                  <img src='./delete.svg' alt="Icono 2" width={16} height={16} />
-                </IconContainer>
-              </ListItem>
-              <Divider />
-            </React.Fragment>
+            <ListItem>
+              <Typography variant="body1" sx={{ marginRight: 1 }}>Pieza {artifact.id}</Typography>
+
+              <IconContainer>
+                <img src='/eye.svg' alt="Icono 1" width={16} height={16} style={{ marginRight: 4 }} onClick={() => navigate(`/catalog/${artifact.id}`)}/>
+                <img src='./delete.svg' alt="Icono 2" width={16} height={16} onClick={() => removeById(artifact.id)}  />
+              </IconContainer>
+            </ListItem>
+            <Divider />
+          </React.Fragment>
           ))}
         </List>
       ) : (
@@ -120,9 +120,9 @@ const RequestDetails = () => {
               </Button>
             </HorizontalStack>
           ) : (
-            <DownloadArtifactButton text={"Solicitar datos"}>
-              <BulkDownloadArtifactForm artifactInfoList={selectedArtifacts} />
-            </DownloadArtifactButton>
+            <Button variant="contained" color="secondary" fullWidth sx={{ marginTop: 1 }}>
+              Solicitar datos
+            </Button>
           )}
 
           <Button
@@ -146,38 +146,22 @@ const HorizontalStack = styled("div")(({ theme }) => ({
   gap: theme.spacing(1),
 }));
 
-// Estilo para alinear los iconos pequeños en línea
 const IconContainer = styled("div")({
   display: "flex",
   gap: 8,
   marginLeft: "auto",
+  img: {
+    cursor: "pointer",
+    padding: 4, // Agregamos un poco de espacio para hacerlo clickeable
+    borderRadius: "50%", // Opcional: puedes cambiar el diseño
+    transition: "background-color 0.3s, transform 0.3s", // Efecto de transición suave
+  },
+  
+  "img:hover": {
+    backgroundColor: "#f0f0f0", // Color de fondo claro al pasar el mouse
+    transform: "scale(1.2)", // Hace un zoom ligero
+  },
 });
 
+
 export default RequestDetails;
-
-
-/*
-
-{selectedArtifacts.length > 0 && (
-        <Container sx={{ paddingBottom: 2 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            onClick={onRequestDownload}
-            sx={{ marginBottom: 1 }}
-          >
-            Enviar Solicitud de Descarga
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            fullWidth
-            onClick={setEmptyList}
-          >
-            Deshacer Solicitud
-          </Button>
-        </Container>
-      )}
-
-*/
