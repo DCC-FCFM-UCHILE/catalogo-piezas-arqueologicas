@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AppBar, Toolbar, IconButton, Button, Box, styled } from "@mui/material";
+import { AppBar, Toolbar, IconButton, Button, Box, styled, Typography, Alert } from "@mui/material";
 import { useToken } from "../hooks/useToken";
 import { API_URLS } from "../api";
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+
 
 /**
  * MenuBar component represents the application's navigation bar.
@@ -177,25 +179,22 @@ const MenuBar = () => {
       </Toolbar>
     </AppBar>
     {(showNotifications && notifications > 0) && (
-      <Modal>
-        <button onClick={() => setShowNotifications(false)}>X</button>
-        <p>Hay {notifications} {notifications === 1 ? "solicitud" : "solicitudes"} pendiente{notifications === 1 ? "" : "s"}</p>
-        <button onClick={handleDownloadRequestClick}>Ver solicitudes</button>
-      </Modal>
+      <Box textAlign="center" className="floating-box" sx={{ position: 'fixed', bottom: 30, right: 30, zIndex: 100 }}>
+        <Alert 
+          icon={<NotificationsActiveIcon fontSize="inherit" />}
+          severity="info" 
+          onClose={() => {setShowNotifications(false)}} 
+          >
+            Tienes {notifications} {notifications === 1 ? "solicitud" : "solicitudes"} pendiente{notifications === 1 ? "" : "s"}  
+            <br/>     
+            <Button onClick={handleDownloadRequestClick}>
+              Ver solicitudes
+            </Button>
+        </Alert>
+      </Box>
     )}
     </>
   );
 };
 
-const Modal = styled("div")({
-  position: "fixed",
-  bottom: 20,
-  right: 20,
-  backgroundColor: "#fff",
-  padding: "1rem",
-  borderRadius: "0.5rem",
-  boxShadow: "0 0 1rem rgba(0, 0, 0, 0.1)",
-  zIndex: 100,
-  display: "flex",
-});
 export default MenuBar;

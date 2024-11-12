@@ -5,7 +5,6 @@ import { Button, List, ListItem, ListItemButton, ListItemText, ListItemIcon, Div
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloseIcon from '@mui/icons-material/Close';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import DoneIcon from '@mui/icons-material/Done';
@@ -150,15 +149,6 @@ const DownloadRequest = () => {
                             </React.Fragment>
                         ))}
                     </List>
-                    <Box textAlign="center" className="floating-box" sx={{ position: 'fixed', bottom: 30, right: 30 }}>
-                        {/*Icono de solicitud */}
-                        <IconButton>
-                            <NotificationsActiveIcon />
-                        </IconButton>
-                        <Typography variant="caption">
-                            Tienes {filteredRequests.filter(req => req.status === "Pendiente").length} solicitudes pendientes
-                        </Typography>
-                    </Box>
                 </Box>
             </Box>
         </div>
