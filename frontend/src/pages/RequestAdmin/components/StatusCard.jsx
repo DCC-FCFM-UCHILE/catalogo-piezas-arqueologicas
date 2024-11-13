@@ -30,7 +30,7 @@ function StatusCard({ r}) {
 
     return (
         <div key={r.id}>
-            <Box sx={{ my: 1, display: 'flex', flexDirection: 'column',  }}>
+            <Box sx={{display: 'flex', flexDirection: 'column',  }}>
                 <InLineDiv>
                     <IconButton onClick={handleExpandClick} sx={{ mr: 1 }}>
                         {expanded ? <VisibilityOffIcon /> : <VisibilityIcon />}

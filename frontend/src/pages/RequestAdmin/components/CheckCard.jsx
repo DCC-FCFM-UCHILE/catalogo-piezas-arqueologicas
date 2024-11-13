@@ -13,7 +13,7 @@ function CheckCard({ r, handleStatusChange }) {
 
     return (
         <div key={r.id}>
-            <Box sx={{ my: 1, display: 'flex', flexDirection: 'column',  }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column',  }}>
                 <InLineDiv>
                     <IconButton onClick={handleExpandClick}>
                         {expanded? <VisibilityOffIcon /> : <VisibilityIcon /> }
@@ -37,7 +37,7 @@ function CheckCard({ r, handleStatusChange }) {
                     />
                 </Collapse>
             </Box>
-            <Divider aria-hidden="true"/>
+            <Divider sx={{ my: 1 }} aria-hidden="true"/>
         </div>
     );
 }

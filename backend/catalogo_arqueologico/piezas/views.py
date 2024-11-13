@@ -1549,18 +1549,19 @@ class ArtifactBulkDetailAPIView(APIView):
                             artifact.id_thumbnail.path.path,
                             f"thumbnail/{artifact.id_thumbnail.path}"
                         )
-                    zipf.write(
-                        artifact.id_model.texture.path,
-                        f"model/{artifact.id_model.texture.name}"
-                    )
-                    zipf.write(
-                        artifact.id_model.object.path,
-                        f"model/{artifact.id_model.object.name}"
-                    )
-                    zipf.write(
-                        artifact.id_model.material.path,
-                        f"model/{artifact.id_model.material.name}"
-                    )
+                    if artifact.id_model:
+                        zipf.write(
+                            artifact.id_model.texture.path,
+                            f"model/{artifact.id_model.texture.name}"
+                        )
+                        zipf.write(
+                            artifact.id_model.object.path,
+                            f"model/{artifact.id_model.object.name}"
+                        )
+                        zipf.write(
+                            artifact.id_model.material.path,
+                            f"model/{artifact.id_model.material.name}"
+                        )
                     images = Image.objects.filter(id_artifact=artifact.id)
                     for image in images:
                         zipf.write(image.path.path, f"model/{image.path}")
@@ -1667,7 +1668,7 @@ class RequestDetailAPIView(generics.RetrieveUpdateAPIView):
                             "Solicitud de descarga masiva",
                             f"Su solicitud de descarga masiva ha sido {status_request}.\n"
                             f"Comentarios: {message} \n"
-                            f"Link de descarga: {'http://localhost:8000/api/catalog/artifact/'+str(pk)+'/request/download' if settings.DEBUG else 'https://catalogo.dcc.uchile.cl/api/catalog/artifact/'+str(pk)+'/request/download'}"
+                            f"Link de descarga: {'http://localhost:8000/api/catalog/artifact/'+str(pk)+'/request/download' if settings.DEBUG else 'https://catalogo.dcc.uchile.cl/api/catalog/artifact/'+str(pk)+'/request/download'} \n"
                             f"este link estará disponible para descargar solo una vez",
                             'no-reply@tudominio.com',
                             [bulk_download_request.email],
@@ -1712,20 +1713,19 @@ class RequestDownloadAPIView(generics.GenericAPIView):
                             artifact.id_thumbnail.path.path,
                             f"thumbnail/{artifact.id_thumbnail.path}",
                         )
-
-                    zipf.write(
-                        artifact.id_model.texture.path,
-                        f"model/{artifact.id_model.texture.name}",
-                    )
-                    zipf.write(
-                        artifact.id_model.object.path,
-                        f"model/{artifact.id_model.object.name}",
-                    )
-                    zipf.write(
-                        artifact.id_model.material.path,
-                        f"model/{artifact.id_model.material.name}",
-                    )
-
+                    if artifact.id_model:
+                        zipf.write(
+                            artifact.id_model.texture.path,
+                            f"model/{artifact.id_model.texture.name}",
+                        )
+                        zipf.write(
+                            artifact.id_model.object.path,
+                            f"model/{artifact.id_model.object.name}",
+                        )
+                        zipf.write(
+                            artifact.id_model.material.path,
+                            f"model/{artifact.id_model.material.name}",
+                        )
                     images = Image.objects.filter(id_artifact=artifact.id)
                     for image in images:
                         zipf.write(image.path.path, f"model/{image.path}")
