@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import { API_URLS } from "../../api";
 import { useToken } from "../../hooks/useToken";
 import { Button, List, ListItem, ListItemButton, ListItemText, ListItemIcon, Divider, Typography, Box, IconButton } from "@mui/material";
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloseIcon from '@mui/icons-material/Close';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import DoneIcon from '@mui/icons-material/Done';
+import DownloadDoneIcon from '@mui/icons-material/DownloadDone';
 
 const DownloadRequest = () => {
     const { token } = useToken();
@@ -73,7 +73,7 @@ const DownloadRequest = () => {
             case "rejected":
                 return <CloseIcon />;
             case "downloaded":
-                return <CheckCircleIcon />;
+                return <DownloadDoneIcon />;
             default:
                 return <MoreHorizIcon />;
         }
