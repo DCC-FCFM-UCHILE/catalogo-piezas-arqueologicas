@@ -21,6 +21,7 @@ export const SelectionProvider = ({ children }) => {
 
   const toggleSelection = (artifact) => {
     setSelectedArtifacts((prevSelected) => {
+
       // Verificar si el artefacto ya está en la lista de seleccionados por su ID
       const isSelected = prevSelected.some((item) => item.id === artifact.id);
       
@@ -38,6 +39,16 @@ export const SelectionProvider = ({ children }) => {
     setSelectedArtifacts([]);
     localStorage.removeItem('selectedArtifacts');
   }
+
+  const removeById = (id) => {
+    setSelectedArtifacts((prevSelected) => {
+      const newSelected = prevSelected.filter((item) => item.id !== id);
+      localStorage.setItem('selectedArtifacts', JSON.stringify(newSelected));
+      console.log(selectedArtifacts);
+      return newSelected;
+    });
+  };
+
   /*
   useEffect(() => {
     localStorage.setItem('selectedArtifacts', JSON.stringify(selectedArtifacts));
@@ -48,7 +59,7 @@ export const SelectionProvider = ({ children }) => {
   }, [selectedArtifacts]);
 
   return (
-    <SelectionContext.Provider value={{ selectedArtifacts, toggleSelection,setEmptyList }}>
+    <SelectionContext.Provider value={{ selectedArtifacts, toggleSelection,setEmptyList,removeById }}>
       {children}
     </SelectionContext.Provider>
   );
