@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { API_URLS } from "../../api";
 import { useToken } from "../../hooks/useToken";
-import { styled } from "@mui/material";
+import { Box, Button, Checkbox, CircularProgress, Divider, styled, Typography, TextField} from "@mui/material";
+import CheckCard from "./components/CheckCard";
+import StatusCard from "./components/StatusCard";
 
 
 const RequestDetail = () => {
     const [request, setRequest] = useState({});
+    const [loading, setLoading] = useState(false);
     const [requested, setRequested] = useState([]);
     const [msg, setMsg] = useState("");
     const [showModal, setShowModal] = useState(false);
@@ -61,7 +64,7 @@ const RequestDetail = () => {
     };
 
     const handleSubmit = async () => {
-        console.log(requested);
+        setLoading(true);
         const response = await fetch(`${API_URLS.DETAILED_ARTIFACT}/request/${request.id}`, {
             method: "PUT",
             headers: {
@@ -74,11 +77,14 @@ const RequestDetail = () => {
             }),
         });
         if (!response.ok) {
-            console.error("Failed to update requests");
+            setLoading(false);
+            console.error("Failed to update request");
             return;
         }
         const data = await response.json();
-        console.log(data);
+        await fetchRequest(request.id);
+        setShowModal(false);
+        setLoading(false);
     }
 
     const handleSubmitReject = async () => {
@@ -88,93 +94,158 @@ const RequestDetail = () => {
         setShowModal(true);
     }
 
-    
-    return (
-        <div>
-            <button onClick={() => window.history.back()}>Volver</button>
-        <h1>Detalle Solicitud: {request.name}</h1>
-        <p>Estado: {request.status}</p>
-        <p>Número de piezas solicitadas: {requested.length}</p>
-        {request.status == "pending" ? 
-        <>
-            <button onClick={handleAcceptAll}>
-                Aceptar todos
-            </button>
-            {requested.map((r) => (
-                <Tile key={r.id}>
-                    <p>{r.artifact}</p>
-                    <p>{r.description}</p>
-                    <img 
-                        src={`${API_URLS.BASE}${r.thumbnail}`}
-                        alt={r.artifact} /> {/* falta poner el ojo para que  */}
-                    <CheckBox
-                        onClick={() => handleStatusChange(r.id, r.status)}
-                        value={r.status == "accepted"}
-                    />
-                </Tile>
-            ))}
-
-            <button onClick={()=> setShowModal(true)}>
-                Aceptar seleccionados
-            </button>
-            <button onClick={handleSubmitReject}>
-                Rechazar todo
-            </button>
-        </> :
-        <>
-            {requested.map((r) => (
-                <Tile key={r.id}>
-                    <p>{r.artifact}</p>
-                    <p>{r.description}</p>
-                    <img 
-                        src={`${API_URLS.BASE}${r.thumbnail}`}
-                        alt={r.artifact} />
-                    <p>{r.status}</p>
-                </Tile>
-            ))}
-        </>
+    const translateStatus = (status) => {
+        switch (status) {
+            case "accepted":
+                return "Aceptada";
+            case "pending":
+                return "Pendiente";
+            case "partiallyaccepted":
+                return "Parcialmente Aceptada";
+            case "rejected":
+                return "Rechazada";
+            case "downloaded":
+                return "Descargada";
+            default:
+                return status;
         }
+    };
 
-        {showModal && (
-            <Modal>
-                <ModalContent>
-                    <p>Introduce un mensaje para el usuario con el motivo de el rechazo o aceptación de los objetos seleccionados</p>
-                    <textarea
-                        placeholder="Mensaje"
-                        value={msg}
-                        onChange={(e) => setMsg(e.target.value)}
-                        style={{minHeight: "5rem"}}
-                        maxLength={500}
-                    />
-                    <br />
-                    <button onClick={() => setShowModal(false)}>Cancelar</button>
-                    <br />
-                    <button onClick={handleSubmit}>Enviar</button>
-                </ModalContent>
-            </Modal>
-        )}
-        </div>
+    if (loading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+
+    return (
+        <Box p={4}>
+            <Box display="flex" justifyContent="flex-start" mb={2}>
+                <Button variant="text" color="primary" onClick={() => window.history.back()}>
+                    Volver a Solicitudes
+                </Button>
+            </Box>
+            <Typography variant="h4" gutterBottom>
+                Detalle de la Solicitud
+            </Typography>
+            <Typography variant="h6">
+                {request.name}
+            </Typography>
+            <Typography variant="body1" gutterBottom>
+                {request.email}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+                Solicita {requested.length} {requested.length === 1 ? "pieza" : "piezas"}.
+            </Typography>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+                Estado: {translateStatus(request.status)}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+                Mensaje del Solicitante: {request.comments}
+            </Typography>
+            <Divider />
+            {request.status === "pending" ? (
+                <>
+                    <Box display="flex" alignItems="center" mb={2}>
+                        <Typography variant="body1" mr={2} my={2}>
+                            Seleccionar Todos
+                        </Typography>
+                        <Checkbox
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                if (requested.every((r) => r.status === "accepted")) {
+                                    setRequested((prevRequests) =>
+                                        prevRequests.map((request) => ({ ...request, status: "rejected" }))
+                                    );
+                                } else {
+                                    handleAcceptAll();
+                                }
+                            }}
+                            checked={requested.every((r) => r.status === "accepted")}
+                        />
+                    </Box>
+                    <Box display="flex" flexDirection="column" gap={2}>
+                        {requested.map((r) => (
+                            <CheckCard key={r.id} r={r} handleStatusChange={handleStatusChange} />
+                        ))}
+                    </Box>
+                    <Box display="flex" justifyContent="center" mt={2} gap={2}>
+                        <GreenButton onClick={() => setShowModal(true)}>
+                            Aceptar seleccionados
+                        </GreenButton>
+                        <RedButton onClick={handleSubmitReject}>
+                            Rechazar todo
+                        </RedButton>
+                    </Box>
+                </>
+            ) : (
+                <Box display="flex" flexDirection="column" gap={2}>
+                    {requested.map((r) => (
+                        <StatusCard key={r.id} r={r} />
+                    ))}
+                </Box>
+            )}
+            {showModal && (
+                <Modal open={showModal} onClose={() => setShowModal(false)}>
+                    <Box p={4} bgcolor="background.paper" borderRadius={2} boxShadow={3} mx="auto" my="20vh" width="50%">
+                        {loading ? (
+                            <Box display="flex" flexDirection="column" alignItems="center">
+                                <CircularProgress size={80} />
+                                <Typography variant="body1" mt={2}>
+                                    Enviando...
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <Box>
+                                {requested.every((r) => r.status === "accepted") ? (
+                                    <Typography variant="body1">
+                                        ¿Estás seguro de que deseas aceptar los objetos seleccionados?
+                                    </Typography>
+                                ) : (
+                                    <>
+                                        <Typography variant="h6" gutterBottom>
+                                            Comentarios
+                                        </Typography>
+                                        <Typography variant="body1" gutterBottom>
+                                            Introduce un mensaje para el usuario con el motivo de el rechazo o aceptación de los objetos seleccionados
+                                        </Typography>
+                                        <TextField
+                                            placeholder="Mensaje"
+                                            value={msg}
+                                            onChange={(e) => setMsg(e.target.value)}
+                                            multiline
+                                            rows={4}
+                                            variant="outlined"
+                                            fullWidth
+                                            margin="normal"
+                                            inputProps={{ maxLength: 500 }}
+                                        />
+                                    </>
+                                )}
+                                <Box display="flex" justifyContent="flex-end" mt={2}>
+                                    <Button variant="outlined" color="secondary" onClick={() => setShowModal(false)} sx={{ mr: 2 }}>
+                                        Cancelar
+                                    </Button>
+                                    <Button variant="contained" color="primary" onClick={handleSubmit}>
+                                        Enviar
+                                    </Button>
+                                </Box>
+                            </Box>
+                        )}
+                    </Box>
+                </Modal>
+            )}
+        </Box>
     );
 }
 
-const CheckBox = ({ onClick, value }) => (
-    <input
-        type="checkbox"
-        onClick={onClick}
-        checked={value}
-        readOnly
-    />
-);
-
-const Tile = styled("div")({
-    border: "1px solid #000",
-    padding: "1rem",
-    margin: "1rem",
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "space-between",
+const InLineDiv = styled("div")({
+    display: "grid",
+    gridTemplateColumns: "40px 40px 2fr 20px",
     alignItems: "center",
-    borderRadius: "0.5rem",
+    width: "90%",
 });
 
 const Modal = styled("div")({
@@ -197,6 +268,30 @@ const ModalContent = styled("div")({
     flexDirection: "column",
     height: "20rem",
     width: "20rem",
+});
+
+const ButtonsContainer = styled("div")({
+    marginTop: "1rem",
+    display: "flex",
+    justifyContent: "space-evenly",
+    width: "100%",
+});
+
+const RedButton = styled(Button)({
+    backgroundColor: "#e57373",  // Rojo claro
+    color: "white",
+    "&:hover": {
+        backgroundColor: "#d32f2f",  // Rojo más intenso al pasar el cursor
+    },
+});
+
+// Botón verde refinado
+const GreenButton = styled(Button)({
+    backgroundColor: "#81c784",  // Verde claro
+    color: "white",
+    "&:hover": {
+        backgroundColor: "#388e3c",  // Verde más intenso al pasar el cursor
+    },
 });
 
 export default RequestDetail;
