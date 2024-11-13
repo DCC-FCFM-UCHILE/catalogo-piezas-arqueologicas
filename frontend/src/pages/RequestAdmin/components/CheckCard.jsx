@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { API_URLS } from "../../../api";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import { Checkbox, Collapse, styled } from "@mui/material";
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { Box, Checkbox, Collapse, Divider, IconButton, styled, Typography } from "@mui/material";
 
 function CheckCard({ r, handleStatusChange }) {
     const [expanded, setExpanded] = useState(false);
@@ -11,27 +12,32 @@ function CheckCard({ r, handleStatusChange }) {
     };
 
     return (
-        <div key={r.id} expanded={expanded}>
-            <InLineDiv>
-                <VisibilityIcon onClick={handleExpandClick} />
-                <p>{r.artifact}</p>
-                <p>{r.description}</p>
-                
-                <Checkbox
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        handleStatusChange(r.id, r.status);
-                    }}
-                    checked={r.status === "accepted"}
-                />
-            </InLineDiv>
-            <Collapse in={expanded}>
-                <img 
-                    src={`${API_URLS.BASE}${r.thumbnail}`}
-                    alt={r.artifact}
-                    style={{ width: "100%", borderRadius: "4px", maxWidth: "300px", marginLeft: "80px" }}
-                />
-            </Collapse>
+        <div key={r.id}>
+            <Box sx={{ my: 1, display: 'flex', flexDirection: 'column',  }}>
+                <InLineDiv>
+                    <IconButton onClick={handleExpandClick}>
+                        {expanded? <VisibilityOffIcon /> : <VisibilityIcon /> }
+                    </IconButton>
+                    <Typography>{r.artifact}</Typography>
+                    <p>{r.description}</p>
+                    
+                    <Checkbox
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            handleStatusChange(r.id, r.status);
+                        }}
+                        checked={r.status === "accepted"}
+                    />
+                </InLineDiv>
+                <Collapse in={expanded}>
+                    <img 
+                        src={`${API_URLS.BASE}${r.thumbnail}`}
+                        alt={r.artifact}
+                        style={{ width: "100%", borderRadius: "4px", maxWidth: "300px", marginLeft: "80px" }}
+                    />
+                </Collapse>
+            </Box>
+            <Divider aria-hidden="true"/>
         </div>
     );
 }
