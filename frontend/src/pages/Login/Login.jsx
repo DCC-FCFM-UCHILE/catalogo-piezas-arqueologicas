@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
@@ -26,6 +26,25 @@ const Login = () => {
     username: "",
     password: "",
   });
+
+  // State to store the admin email
+  const [adminEmail, setAdminEmail] = useState("");
+
+   // Fetch admin email when component mounts
+   useEffect(() => {
+    const fetchAdminEmail = async () => {
+      try {
+        const response = await fetch(`${API_URLS.ADMIN_MAIL}`);
+        const data = await response.json();
+       
+        setAdminEmail(data.admin_email);
+      } catch (error) {
+        console.error("Error fetching admin email:", error);
+      }
+    };
+
+    fetchAdminEmail();
+  }, []);
 
   // Function to handle changes in form input fields
   const handleChange = (e) => {
@@ -106,6 +125,11 @@ const Login = () => {
         <CustomButton variant="contained" color="primary" type="submit">
           Iniciar sesión
         </CustomButton>
+
+        {/* Password recovery message */}
+        <CustomTypography variant="body2" align="center" marginTop={2}>
+          ¿Olvidaste tu contraseña? Envíanos un correo a <strong>{ adminEmail }</strong> para recuperar tu acceso.
+        </CustomTypography>
       </CustomBox>
     </CustomStack>
   );
