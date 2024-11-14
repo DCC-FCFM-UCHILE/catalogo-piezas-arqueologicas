@@ -6,8 +6,8 @@ import { API_URLS } from "../../../api";
 import { useToken } from "../../../hooks/useToken";
 import { useSnackBars } from "../../../hooks/useSnackbars";
 import { useNavigate } from "react-router-dom";
-
-
+import BulkDownloadArtifactForm from "./BulkDownloadArtifactForm";
+import DownloadArtifactButton from "../../ArtifactDetails/components/DownloadArtifactButton";
 
 const RequestDetails = () => {
   const { selectedArtifacts, setEmptyList,removeById } = useSelection();
@@ -77,8 +77,8 @@ const RequestDetails = () => {
         borderLeft: "1px solid #ddd",
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: '90vh',
-        overflow: 'hidden',
+        maxHeight: '80vh',
+        overflowy: 'auto',
       }}
     >
       <Typography variant="h6" gutterBottom>
@@ -120,9 +120,9 @@ const RequestDetails = () => {
               </Button>
             </HorizontalStack>
           ) : (
-            <Button variant="contained" color="secondary" fullWidth sx={{ marginTop: 1 }}>
-              Solicitar datos
-            </Button>
+            <DownloadArtifactButton text = {"Solicitar datos"}>
+              <BulkDownloadArtifactForm artifactInfoList={selectedArtifacts}></BulkDownloadArtifactForm>
+            </DownloadArtifactButton>
           )}
 
           <Button
