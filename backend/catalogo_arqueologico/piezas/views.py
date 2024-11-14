@@ -1760,3 +1760,8 @@ class RequestsNotificationAPIView(generics.GenericAPIView):
             logger.error(f"Error al obtener solicitudes pendientes: {e}")
             return Response({"detail": "Error al obtener solicitudes pendientes"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+class AdminEmailView(APIView):
+    def get(self, request):
+        admin_user = CustomUser.objects.filter(role=CustomUser.RoleUser.ADMINISTRADOR).first()
+        admin_email = admin_user.email if admin_user else None
+        return Response({"admin_email": admin_email}, status=status.HTTP_200_OK)

@@ -11,6 +11,7 @@ export const API_URLS = {
   AUTH: `${getBaseUrl()}/api/auth/`,
   ALL_ARTIFACTS: `${getBaseUrl()}/api/catalog/artifacts`,
   DETAILED_ARTIFACT: `${getBaseUrl()}/api/catalog/artifact`,
+  ADMIN_MAIL: `${getBaseUrl()}/api/catalog/admin-email`,
   ALL_METADATA: `${getBaseUrl()}/api/catalog/metadata`,
   ALL_INSTITUTIONS: `${getBaseUrl()}/api/catalog/institutions`,
   BASE: `${getBaseUrl()}`,
