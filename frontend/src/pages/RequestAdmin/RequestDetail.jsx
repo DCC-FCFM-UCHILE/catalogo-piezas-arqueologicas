@@ -145,7 +145,7 @@ const RequestDetail = () => {
             <Typography variant="body2" color="textSecondary" gutterBottom>
                 Mensaje del Solicitante: {request.comments}
             </Typography>
-            <Divider />
+            <Divider sx={{ my: 1 }} aria-hidden="true"/>
             {request.status === "pending" ? (
                 <>
                     <Box display="flex" alignItems="center" mb={2}>
@@ -166,7 +166,7 @@ const RequestDetail = () => {
                             checked={requested.every((r) => r.status === "accepted")}
                         />
                     </Box>
-                    <Box display="flex" flexDirection="column" gap={2}>
+                    <Box display="flex" flexDirection="column" gap={0}>
                         {requested.map((r) => (
                             <CheckCard key={r.id} r={r} handleStatusChange={handleStatusChange} />
                         ))}
@@ -181,7 +181,7 @@ const RequestDetail = () => {
                     </Box>
                 </>
             ) : (
-                <Box display="flex" flexDirection="column" gap={2}>
+                <Box display="flex" flexDirection="column" gap={0}>
                     {requested.map((r) => (
                         <StatusCard key={r.id} r={r} />
                     ))}
