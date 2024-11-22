@@ -20,7 +20,6 @@ Serializers Included:
   including key attributes and thumbnails.
 - UpdateArtifactSerializer: Supports updating existing Artifact instances with partial or full data.
 - InstitutionSerializer: Handles serialization for Institution model instances.
-- ArtifactRequesterSerializer: Handles serialization for ArtifactRequester model instances.
 """
 
 import os  # unused import
@@ -29,7 +28,6 @@ from django.conf import settings  # unused import
 from django.core.files import File  # unused import
 from rest_framework import serializers
 from .models import (
-    ArtifactRequester,
     Tag,
     Shape,
     Culture,
@@ -381,23 +379,6 @@ class InstitutionSerializer(serializers.ModelSerializer):
         model = Institution
         fields = ["id", "name"]
 
-
-class ArtifactRequesterSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the ArtifactRequester model.
-    """
-    class Meta:
-        """
-        Meta class for the ArtifactRequesterSerializer.
-
-        Attributes:
-        - model: The ArtifactRequester model to serialize.
-        - fields: The fields to include in the serialized data.
-        """
-
-        model = ArtifactRequester
-        fields = "__all__"
-        extra_fields = ["request_count"]
 
 class BulkDownloadingRequestSerializer(serializers.ModelSerializer):
     """

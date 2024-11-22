@@ -5,8 +5,6 @@ and Artifact Downloads in the application.
 Classes:
 - ArtifactDetailAPIView: Provides a detail view for a single artifact. 
 - MetadataListAPIView: Provides a list view for metadata related to artifacts. 
-- ArtifactDownloadAPIView: Handles both the retrieval of detailed information about 
-    an artifact and the creation of artifact requester records. 
 - CustomPageNumberPagination: Provides paginated responses for API views.
 - CatalogAPIView: Provides a list view for artifacts in the catalog.
 - ArtifactCreateUpdateAPIView: Provides functionality for creating and updating artifacts.
@@ -41,7 +39,6 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from .serializers import (
-    ArtifactRequesterSerializer,
     ArtifactSerializer,
     CatalogSerializer,
     UpdateArtifactSerializer,
@@ -55,7 +52,6 @@ from .serializers import (
 )
 from .models import (
     Artifact,
-    ArtifactRequester,
     CustomUser,
     Institution,
     Image,
@@ -145,158 +141,6 @@ class MetadataListAPIView(generics.ListAPIView):
         except Exception as e:
             logger.error(f"Could not retrieve metadata:{e}")
             return Response({"detail": f"Error al obtener metadata"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class ArtifactDownloadAPIView(generics.RetrieveAPIView, generics.CreateAPIView):
-    """
-    A view that provides downloaded data of detailed information about an artifact.
-
-    Allows the creation of artifact requester records. It extends Django REST
-    Framework's RetrieveAPIView and CreateAPIView.
-
-    Attributes:
-        queryset: Specifies the queryset that this view will use to retrieve
-            the Artifact object. It retrieves all Artifact objects.
-        serializer_class: Specifies the serializer class that should be used
-            for serializing the Artifact object.
-        lookup_field: Specifies the field that should be used to retrieve a
-            single object from the queryset.
-        permission_classes: Defines the list of permissions that apply to
-            this view. It is set to allow any user to access this view.
-    """
-
-    queryset = Artifact.objects.all()
-    serializer_class = ArtifactSerializer
-    lookup_field = "pk"
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request, *args, **kwargs):
-        """
-        Handles POST requests.
-
-        It creates a new artifact requester record and returns a response containing
-        the serialized data for the created artifact requester.
-
-        Args:
-            request: The HTTP request object.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            Response: Django REST Framework's Response object containing serialized
-                data for the created artifact requester.
-        """
-        logger.info(
-            "Creating new artifact requester for artifact {}".format(kwargs.get("pk"))
-        )
-        # If the body is empty, retrieve info from backend
-        if not request.data:
-            token = request.headers.get("Authorization")
-            try:
-                token_instance = Token.objects.get(key=token.split(" ")[1])
-            except Token.DoesNotExist:
-
-                return Response(
-                    {"detail": "Se requiere iniciar sesión nuevamente"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            username = token_instance.user
-            try:
-                user = CustomUser.objects.get(username=username)
-            except CustomUser.DoesNotExist:
-                return Response(
-                    {"detail": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND
-                )
-            name = user.first_name + " " + user.last_name
-            
-            requester = ArtifactRequester.objects.create(
-                name=name,
-                rut=user.rut,
-                email=user.email,
-                is_registered=True,
-                institution=user.institution if user.institution else None,
-                artifact=Artifact.objects.get(pk=kwargs.get("pk")),
-                )
-            serializer = ArtifactRequesterSerializer(requester)
-                
-        else:
-            try:
-                
-                requester = ArtifactRequester.objects.create(
-                    name=request.data.get("fullName"),
-                    rut=request.data.get("rut"),
-                    email=request.data.get("email"),
-                    comments=request.data.get("comments"),
-                    is_registered=False,
-                    institution=Institution.objects.get(pk=request.data.get("institution")),
-                    artifact=Artifact.objects.get(pk=kwargs.get("pk")),
-                )
-                serializer = ArtifactRequesterSerializer(requester)
-            except Exception as e:
-                logger.error(f"Error al crear solicitante: {e}")
-                return Response(
-                    {"detail": "Error al crear solicitante"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-        return Response({"data": serializer.data}, status=status.HTTP_201_CREATED)
-
-    def get(self, request, *args, **kwargs):
-        """
-        Handles GET requests.
-
-        It retrieves detailed information about an artifact and returns a response
-        containing the serialized data for the artifact.
-
-        Args:
-            request: The HTTP request object.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            Response: Django REST Framework's Response object containing serialized
-                data for the artifact.
-        """
-        pk = kwargs.get("pk")
-        if pk is not None:
-            logger.info(f"Downloading artifact {pk}")
-            try:
-                artifact = Artifact.objects.get(pk=pk)
-            except Artifact.DoesNotExist:
-                return Response(
-                    {"detail": "Pieza no encontrada"}, status=status.HTTP_404_NOT_FOUND
-                )
-
-            buffer = BytesIO()
-
-            with zipfile.ZipFile(buffer, "w") as zipf:
-                if artifact.id_thumbnail:
-                    zipf.write(
-                        artifact.id_thumbnail.path.path,
-                        f"thumbnail/{artifact.id_thumbnail.path}",
-                    )
-
-                zipf.write(
-                    artifact.id_model.texture.path,
-                    f"model/{artifact.id_model.texture.name}",
-                )
-                zipf.write(
-                    artifact.id_model.object.path,
-                    f"model/{artifact.id_model.object.name}",
-                )
-                zipf.write(
-                    artifact.id_model.material.path,
-                    f"model/{artifact.id_model.material.name}",
-                )
-
-                images = Image.objects.filter(id_artifact=artifact.id)
-                for image in images:
-                    zipf.write(image.path.path, f"model/{image.path}")
-
-            buffer.seek(0)
-
-            response = HttpResponse(buffer, content_type="application/zip")
-            response["Content-Disposition"] = f"attachment; filename=artifact_{pk}.zip"
-            return response
-
 
 class CustomPageNumberPagination(PageNumberPagination):
     """
