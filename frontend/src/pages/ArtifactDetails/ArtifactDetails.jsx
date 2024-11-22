@@ -8,16 +8,15 @@ import {
 } from "@mui/material";
 import { Category, Diversity3, LocalOffer } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
-import DownloadArtifactButton from "./components/DownloadArtifactButton";
 import ModelVisualization from "./components/ModelVisualization";
 import ImageVisualization from "./components/ImageVisualization";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import DownloadArtifactForm from "./components/DownloadArtifactForm";
 import NotFound from "../../components/NotFound";
 import { API_URLS } from "../../api";
 import { useToken } from "../../hooks/useToken";
 import { useSnackBars } from "../../hooks/useSnackbars";
 import Carousel from "./components/Carousel";
+import { useSelection } from "../../selectionContext";
 
 /**
  * The ArtifactDetails component displays detailed information about a specific artifact,
@@ -27,6 +26,8 @@ import Carousel from "./components/Carousel";
  */
 const ArtifactDetails = () => {
   const navigate = useNavigate();
+  const { selectedArtifacts, toggleSelection, removeById } = useSelection();
+  const [isArtifactSelected, setIsArtifactSelected] = useState(false);
   const location = useLocation();
   const { token } = useToken();
   const { addAlert } = useSnackBars();
@@ -100,56 +101,30 @@ const ArtifactDetails = () => {
       })
       .finally(() =>{
         setLoading(false)
+        const artifactSelectedStatus = selectedArtifacts.some((a) => a.id == artifactId)
+        setIsArtifactSelected(artifactSelectedStatus)
+        console.log("status: " + artifactSelectedStatus)
       });
   }, [artifactId, token]);
 
   /**
-   * Handles the download functionality for the artifact.
-   * Initiates download and displays alerts for success or failure.
+   * Handles the download click 
+   * update the artifact in useSelection
    */
-  const handleDownload = async () => {
-    try {
-      const response = await fetch(
-        `${API_URLS.DETAILED_ARTIFACT}/${artifactId}/download`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        addAlert(data.detail);
-        return;
-      }
-
-      // If the first fetch was successful, proceed with downloading the artifact
-      const downloadResponse = await fetch(
-        `${API_URLS.DETAILED_ARTIFACT}/${artifactId}/download`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const url = window.URL.createObjectURL(
-        new Blob([await downloadResponse.blob()])
-      );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `artifact_${artifactId}.zip`;
-      link.click();
-      link.remove();
-      addAlert("Descarga exitosa");
-    } catch (error) {
-      addAlert("Error al descargar pieza");
-    }
-  };
+  const handleClick = async () => {
+    if (isArtifactSelected){
+      console.log("eliminar artefacto")
+      removeById(parseInt(artifactId))
+      setIsArtifactSelected(false)
+    } else{
+      console.log("añadir artefacto")
+      toggleSelection({
+        id: parseInt(artifactId, 10),
+        attributes: artifact.attributes,
+        thumbnail: artifact.thumbnail
+      })
+      setIsArtifactSelected(true)
+  }};
 
 
   const handleVisualization = (index) => {
@@ -185,8 +160,11 @@ const ArtifactDetails = () => {
               {loggedIn ? (
                 // Buttons for download and edit (if logged in)
                 <HorizontalStack>
-                  <Button variant="contained" onClick={handleDownload}>
-                    Descargar Pieza
+                  <Button variant="contained" onClick={handleClick}>
+                    {isArtifactSelected ?
+                    <>  Deseleccionar Pieza para descarga </>
+                      :
+                    <> Seleccionar Pieza para descarga </>}
                   </Button>
                   <Button variant="contained" onClick={handleRedirect}>
                     Editar Pieza
@@ -194,9 +172,12 @@ const ArtifactDetails = () => {
                 </HorizontalStack>
               ) : (
                 // Button to request data if not logged in
-                <DownloadArtifactButton text={"Solicitar datos"}>
-                  <DownloadArtifactForm artifactInfo={artifact} />
-                </DownloadArtifactButton>
+                <Button variant="contained" onClick={handleClick}>
+                    {isArtifactSelected ?
+                    <>  Deseleccionar Pieza para descarga </>
+                      :
+                    <> Seleccionar Pieza para descarga </>}
+                </Button>
               )}
             </CustomContainer>
             {/* Loading indicator while model is being loaded */}
