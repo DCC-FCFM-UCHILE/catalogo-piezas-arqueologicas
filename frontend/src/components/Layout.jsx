@@ -12,6 +12,7 @@ import RequestDetail from "../pages/RequestAdmin/RequestDetail";
 
 // Lazy-loaded components
 const Home = lazy(() => import("../pages/Home/Home"));
+const PasswordRecovery = lazy(() => import("../pages/Login/PasswordRecovery"));
 const Login = lazy(() => import("../pages/Login/Login"));
 const Catalog = lazy(() => import("../pages/Catalog/Catalog"));
 const CreateArtifact = lazy(() => import("../pages/Catalog/CreateArtifact"));
@@ -56,6 +57,7 @@ const Layout = () => {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/catalog" element={<Catalog />} />
+          <Route path="/password-recovery" element={<PasswordRecovery />} />
           <Route path="/catalog/:artifactId" element={<ArtifactDetails />} />
           {/* Nested route for catalog with authorization check */}
           <Route element={<PrivateRouteWrapper />}>
