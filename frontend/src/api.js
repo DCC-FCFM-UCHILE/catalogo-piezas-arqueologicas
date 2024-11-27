@@ -15,4 +15,6 @@ export const API_URLS = {
   ALL_METADATA: `${getBaseUrl()}/api/catalog/metadata`,
   ALL_INSTITUTIONS: `${getBaseUrl()}/api/catalog/institutions`,
   BASE: `${getBaseUrl()}`,
+  RECOVER_PASSWORD: `${getBaseUrl()}/api/catalog/password-reset/`,
+  CONFIRM_RECOVER_PASSWORD:`${getBaseUrl()}/api/catalog/password-reset-confirm/`,  
 };

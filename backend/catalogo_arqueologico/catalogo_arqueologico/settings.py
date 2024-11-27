@@ -214,3 +214,4 @@ LOGGING = {
 # Correo desarrollo cambiar a smtp para producción
 EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
 EMAIL_FILE_PATH = "/app/media/emails"
+

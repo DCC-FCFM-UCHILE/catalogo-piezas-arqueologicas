@@ -69,7 +69,9 @@ from .models import (
 )
 from .permissions import IsFuncionarioPermission, IsAdminPermission
 from .authentication import TokenAuthentication
-
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.models import User
 logger = logging.getLogger(__name__)
 
 
@@ -1765,3 +1767,67 @@ class AdminEmailView(APIView):
         admin_user = CustomUser.objects.filter(role=CustomUser.RoleUser.ADMINISTRADOR).first()
         admin_email = admin_user.email if admin_user else None
         return Response({"admin_email": admin_email}, status=status.HTTP_200_OK)
+    
+
+class RecoverPasswordUser(APIView):
+    """
+    This Api is called when the user wants to recover the password
+    """
+
+    def post(self, request):
+        """
+        Extract the username from the body
+        """
+        print("entro aca")
+        username = request.data["username"]
+        if not username: 
+            return Response(
+                {"error":"El campo es obligatorio"}
+            )
+        try: 
+            user = CustomUser.objets.get(username=username)
+            return Response(
+                {"message":"Usuario encontrado"}
+            )
+        except CustomUser.DoesNotExist: 
+            return Response(
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+
+
+class PasswordResetRequestView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        form = PasswordResetForm(data={'email': email})
+        if form.is_valid():
+            form.save(
+                request=request,
+                use_https=True,
+            )
+            print(form)
+            return Response({"message": "Password reset email sent."}, status=200)
+        return Response({"error": "Invalid email address."}, status=400)
+    
+class PasswordResetConfirmView(APIView):
+    def post(self, request):
+        uidb64 = request.data.get('uidb64')
+        token = request.data.get('token')
+        new_password = request.data.get('new_password')
+
+        # Decode user ID
+        from django.utils.http import urlsafe_base64_decode
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user and default_token_generator.check_token(user, token):
+            user.set_password(new_password)
+            user.save()
+            return Response({"message": "Password has been reset."}, status=200)
+        return Response({"error": "Invalid token or user ID."}, status=400)
+
+        
+

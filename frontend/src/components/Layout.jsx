@@ -10,9 +10,11 @@ import BulkLoading from "../pages/Catalog/BulkLoading";
 import DownloadRequest from "../pages/RequestAdmin/DownloadRequest";
 import RequestDetail from "../pages/RequestAdmin/RequestDetail";
 
+
 // Lazy-loaded components
 const Home = lazy(() => import("../pages/Home/Home"));
 const PasswordRecovery = lazy(() => import("../pages/Login/PasswordRecovery"));
+const ResetPassword = lazy(() => import("../pages/Login/ResetPassword"));
 const Login = lazy(() => import("../pages/Login/Login"));
 const Catalog = lazy(() => import("../pages/Catalog/Catalog"));
 const CreateArtifact = lazy(() => import("../pages/Catalog/CreateArtifact"));
@@ -54,6 +56,8 @@ const Layout = () => {
         }
       >
         <Routes>
+          <Route path="/forgot-password" component={PasswordRecovery} />
+          <Route path="/reset-password/:uidb64/:token" component={ResetPassword} />        
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/catalog" element={<Catalog />} />
