@@ -18,7 +18,6 @@ the Django admin panel.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (
-    ArtifactRequester,
     Tag,
     Shape,
     Culture,
@@ -186,6 +185,5 @@ admin.site.register(Model)
 admin.site.register(Thumbnail)
 admin.site.register(Image)
 admin.site.register(Institution)
-admin.site.register(ArtifactRequester)
 admin.site.register(BulkDownloadingRequest)
 admin.site.register(Request)

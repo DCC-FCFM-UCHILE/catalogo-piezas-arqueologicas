@@ -94,9 +94,5 @@ permission_lists = {
         ("view_institution", "Can view institution"),
         ("add_institution", "Can add institution"),
         ("change_institution", "Can change institution"),
-        # ArtifactRequester permissions
-        ("view_artifactrequester", "Can view artifactrequester"),
-        ("add_artifactrequester", "Can add artifactrequester"),
-        ("change_artifactrequester", "Can change artifactrequester"),
     ],
 }
