@@ -1785,7 +1785,7 @@ class RecoverPasswordUser(APIView):
                 {"error":"El campo es obligatorio"}
             )
         try: 
-            user = CustomUser.objets.get(username=username)
+            user = CustomUser.objects.get(username=username)
             return Response(
                 {"message":"Usuario encontrado"}
             )
