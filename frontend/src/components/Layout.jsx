@@ -56,8 +56,8 @@ const Layout = () => {
         }
       >
         <Routes>
-          <Route path="/forgot-password" component={PasswordRecovery} />
-          <Route path="/reset-password/:uidb64/:token" component={ResetPassword} />        
+          <Route path="/forgot-password" element={<PasswordRecovery/>} />
+          <Route path="/reset-password/:uidb64/:token" element={<ResetPassword/>} />        
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/catalog" element={<Catalog />} />

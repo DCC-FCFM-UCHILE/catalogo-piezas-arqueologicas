@@ -47,5 +47,4 @@ urlpatterns = [
     path("artifact/bulkdownloading", views.ArtifactBulkDetailAPIView.as_view()),
     path("artifact/<int:reqnumber>/bulkdownloading",views.ArtifactBulkDetailAPIView.as_view()),
     path("admin-email/", views.AdminEmailView.as_view()), 
-    path("recover-password", views.RecoverPasswordUser.as_view()),
 ]
