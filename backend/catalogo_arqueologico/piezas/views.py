@@ -1796,8 +1796,8 @@ class PasswordResetRequestView(APIView):
                     'no-reply@tudominio.com',
                     [email],
                 )
-                return Response({"message": "holaaaa Si el correo electrónico proporcionado está registrado en nuestro sistema, se enviará un mensaje con instrucciones para restablecer su contraseña."}, status=200)
-            return Response({"error": "Si el correo electrónico proporcionado está registrado en nuestro sistema, se enviará un mensaje con instrucciones para restablecer su contraseña."}, status=400)
+                return Response({"message": "Password reset email sent."}, status=200)
+            return Response({"error": "No se pudo enviar el correo de restablecimiento de contraseña."}, status=400)
         except Exception as e:
             return Response({"error": f"Ha ocurrido un error inesperado: {str(e)}"}, status=500)
 

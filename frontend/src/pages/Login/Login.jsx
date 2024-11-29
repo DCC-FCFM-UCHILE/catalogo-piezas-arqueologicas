@@ -80,7 +80,12 @@ const Login = () => {
 
       // Redirect user to previous location or home page
       const from = location.state?.from || "/";
-      navigate(from, { replace: true });
+      console.log("from", from);
+      if (from !== "/" && String(from.pathname).includes("/reset-password")) {
+        navigate("/");
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (error) {
       // Handle any errors that occurred during fetch
       addAlert("Ha ocurrido un error durante la autenticación");
