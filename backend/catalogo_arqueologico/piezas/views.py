@@ -73,8 +73,6 @@ from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import User
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.contrib.sites.shortcuts import get_current_site
-from django.template.loader import render_to_string
 logger = logging.getLogger(__name__)
 from django.utils.encoding import force_bytes
 from django.contrib.auth import get_user_model
@@ -1774,7 +1772,7 @@ class AdminEmailView(APIView):
  
 class PasswordResetRequestView(APIView):
     """
-    Api Password Reset , this is the first step to recover the password
+    Api Password Reset , this is the first step to recover the password. The post recives the email and validate
     """
     def post(self, request):
         """
@@ -1787,12 +1785,6 @@ class PasswordResetRequestView(APIView):
                 return Response({"error": "Por favor, ingrese un correo electrónico."}, status=400)
             form = PasswordResetForm(data={'email': email})
             if form.is_valid():
-                """  
-                form.save(
-                    request=request,
-                    use_https=True,
-                )
-                """
                 user = form.get_users(email)
                 user = next(user, None)
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -1803,8 +1795,8 @@ class PasswordResetRequestView(APIView):
                     'no-reply@tudominio.com',
                     [email],
                 )
-                return Response({"message": "Password reset email sent."}, status=200)
-            return Response({"error": "No se pudo enviar el correo de restablecimiento de contraseña."}, status=400)
+                return Response({"message": "Si el correo electrónico proporcionado es válido, revisa tu bandeja de entrada para obtener instrucciones sobre cómo restablecer tu contraseña."}, status=200)
+            return Response({"error": "Si el correo electrónico proporcionado es válido, revisa tu bandeja de entrada para obtener instrucciones sobre cómo restablecer tu contraseña."}, status=400)
         except Exception as e:
             return Response({"error": f"Ha ocurrido un error inesperado: {str(e)}"}, status=500)
 
@@ -1835,19 +1827,3 @@ class PasswordResetConfirmView(APIView):
             user.save()
             return Response({"message": "Password has been reset."}, status=200)
         return Response({"error": "Invalid token or user ID."}, status=400)
-
-'''
-class PasswordResetRequestView(APIView):
-    def post(self, request):
-        email = request.data.get('email')
-        form = PasswordResetForm(data={'email': email})
-        if form.is_valid():
-            form.save(
-                request=request,
-                use_https=True,
-            )
-            print(form)
-            return Response({"message": "Password reset email sent."}, status=200)
-        return Response({"error": "Invalid email address."}, status=400)
-   
-'''       
