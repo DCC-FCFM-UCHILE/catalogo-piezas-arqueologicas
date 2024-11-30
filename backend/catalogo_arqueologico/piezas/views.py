@@ -1773,14 +1773,21 @@ class AdminEmailView(APIView):
     
  
 class PasswordResetRequestView(APIView):
+    """
+    Api Password Reset , this is the first step to recover the password
+    """
     def post(self, request):
+        """
+        This post handle the email, if the email is correct the function send a email with the link to recover
+        thr password
+        """
         try:
             email = request.data.get('email')
             if not email:
                 return Response({"error": "Por favor, ingrese un correo electrónico."}, status=400)
             form = PasswordResetForm(data={'email': email})
             if form.is_valid():
-                """
+                """  
                 form.save(
                     request=request,
                     use_https=True,
@@ -1802,16 +1809,24 @@ class PasswordResetRequestView(APIView):
             return Response({"error": f"Ha ocurrido un error inesperado: {str(e)}"}, status=500)
 
 
-User = get_user_model()  # Obtiene el modelo de usuario personalizado registrado
+User = get_user_model()  # get the model for register Users.
 
 class PasswordResetConfirmView(APIView):
+    """
+    This is the second step to recover password, if everything is ok then 
+    the password is finally change. 
+    """
     def post(self, request):
+        """
+        The function take uidb64, token and the new password, the first 2 variables are for verification 
+        the link. 
+        """
         uidb64 = request.data.get('uidb64')
         token = request.data.get('token')
         new_password = request.data.get('new_password')
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
-            user = User.objects.get(pk=uid)  # Utiliza el modelo personalizado
+            user = User.objects.get(pk=uid)  
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             user = None
 

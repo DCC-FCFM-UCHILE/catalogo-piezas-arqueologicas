@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { API_URLS } from "../../api";
 
+/**
+ * The PasswordRecovery component handle the password recover, is the first step when the user 
+ * send an email to recover the password if the email is associate with some user. 
+ */
 const PasswordRecovery = () => {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');

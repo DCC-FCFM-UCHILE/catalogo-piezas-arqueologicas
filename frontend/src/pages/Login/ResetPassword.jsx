@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom'; // For dynamic UID and token in URL
+import { useParams } from 'react-router-dom'; 
 import { API_URLS } from "../../api";
+/**
+ * The ResetPassword is the component to reset the password, verificate if both 
+ * inputs are the same before sent the new password.
+ */
 const ResetPassword = () => {
     const { uidb64, token } = useParams();
     const [password, setPassword] = useState('');
@@ -25,7 +29,7 @@ const ResetPassword = () => {
                 })
             });
             if (!response.ok) {
-                throw new Error('Failed to reset password'); // Handle HTTP errors
+                throw new Error('Failed to reset password'); 
             }
 
             const data = await response.json();
@@ -103,7 +107,7 @@ const styles = {
         fontWeight: 'bold',
     },
     input: {
-        width: '80%', // Ajusta el ancho al 80% del formulario
+        width: '80%', 
         padding: '10px',
         fontSize: '14px',
         marginTop: '5px',
@@ -112,7 +116,7 @@ const styles = {
         borderRadius: '4px',
     },
     button: {
-        width: '80%', // Asegura que el botón sea del mismo tamaño que los inputs
+        width: '80%', 
         padding: '10px',
         backgroundColor: '#007bff',
         color: '#fff',
@@ -124,7 +128,7 @@ const styles = {
     },
     message: {
         marginTop: '10px',
-        color: '#e74c3c', // Rojo para errores
+        color: '#e74c3c',
         fontSize: '14px',
         textAlign: 'center',
     },
