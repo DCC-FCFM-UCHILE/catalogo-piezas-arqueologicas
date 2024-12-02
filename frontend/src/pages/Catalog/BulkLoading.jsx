@@ -7,6 +7,10 @@ import {
     CircularProgress,
     Modal,
     Box,
+    Paper,
+    MenuItem,
+    Select,
+    Divider,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import UploadButton from "../sharedComponents/UploadButton";
@@ -287,66 +291,120 @@ const BulkLoading = () => {
                 </ModalBox>
             </Modal>
             <Modal open={errors}>
-                <ErrorBox>
-                    <Typography variant="h6">
-                        {errorMessages.detail}
-                    </Typography>
-                    {errorMessages.errores.map((error, index) => (
-                        <ErrorText key={index} variant="p">
-                            {error}
-                        </ErrorText>
-                    ))}
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => {
-                            setErrors(false);
-                            setErrorMessages({
-                                detail: "",
-                                errores: [],
-                            })}}
+                <Box 
+                    display="flex" 
+                    justifyContent="center" 
+                    alignItems="center" 
+                    height="100vh"
+                >
+                    <Paper 
+                        style={{
+                            padding: '20px',
+                            borderRadius: '8px',
+                            maxWidth: '500px',
+                            textAlign: 'center'
+                        }}
                     >
-                        Cerrar
-                    </Button>
-                </ErrorBox>
+                        <Typography variant="h6" gutterBottom>
+                            {errorMessages.detail}
+                        </Typography>
+                        {errorMessages.errores.map((error, index) => (
+                            <Typography key={index} variant="body1" color="error">
+                                {error}
+                            </Typography>
+                        ))}
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => {
+                                setErrors(false);
+                                setErrorMessages({
+                                    detail: "",
+                                    errores: [],
+                                });
+                            }}
+                            style={{ marginTop: '20px' }}
+                        >
+                            Cerrar
+                        </Button>
+                    </Paper>
+                </Box>
             </Modal>
             <Modal open={match}>
-                <ErrorBox>
-                    <Typography variant="h6">
-                        {matchMessage.detail}
-                    </Typography>
-                    <Typography variant="h6">
-                        Se encontraron posibles coincidencias con los siguientes artefactos:
-                    </Typography>
-                    {matchMessage.posible_matches.map((match, index) => (
-                        <div>
-                            <ErrorText key={index} variant="p">
-                                La pieza {match.new_artifact.id} que intentaste puede ser la misma que la pieza: {match.match_artifact}
-                            </ErrorText>
+                <Box 
+                    display="flex" 
+                    justifyContent="center" 
+                    alignItems="center" 
+                    height="100vh"
+                >
+                    <Paper 
+                        style={{
+                            padding: '20px',
+                            borderRadius: '8px',
+                            maxWidth: '500px',
+                            textAlign: 'center'
+                        }}
+                    >
+                        <Typography variant="h6">
+                            {matchMessage.detail}
+                        </Typography>
+                        <Typography variant="h6">
+                            Se encontraron posibles coincidencias con los siguientes artefactos:
+                        </Typography>
+                        {matchMessage.posible_matches.map((match, index) => (
+                            <Box key={index} my={2}>
+                                <Typography variant="body1">
+                                    La pieza {match.new_artifact.id} que intentaste puede ser la misma que la pieza: {match.match_artifact}
+                                </Typography>
+                                <Grid container spacing={2} alignItems="center">
+                                    <Grid item>
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            href={`/catalog/${match.match_artifact}`}
+                                            target="_blank"
+                                        >
+                                            Ver pieza
+                                        </Button>
+                                    </Grid>
+                                    <Grid item xs>
+                                        <Select
+                                            fullWidth
+                                            value={match.new_artifact.status || "replace"}
+                                            onChange={(e) => {
+                                                match.new_artifact.status = e.target.value;
+                                            }}
+                                        >
+                                            <MenuItem value="replace">Reemplazar la existente por la nueva</MenuItem>
+                                            <MenuItem value="keep">Mantener la existente y no crear la nueva</MenuItem>
+                                            <MenuItem value="new">Crear una nueva y mantener la existente</MenuItem>
+                                        </Select>
+                                    </Grid>
+                                </Grid>
+                                <Box mt={2}>
+                                    <Divider />
+                                </Box>
+                            </Box>
+
+                        ))}
+                        <Box mt={2} paddingLeft={10} paddingRight={10} display="flex" justifyContent="space-between">
+                            <Button
+                                variant="contained"
+                                color="secondary"
+                                onClick={() => setMatch(false)}
+                            >
+                                Cancelar
+                            </Button>
                             <Button
                                 variant="contained"
                                 color="primary"
-                                href={`/catalog/${match.match_artifact}`}
-                                target="_blank"
-                            > Ver pieza
+                                onClick={handleSubmitMatch}
+                            >
+                                Enviar
                             </Button>
-                            <select name="status" id="status" onChange={(e) => {
-                                match.new_artifact.status = e.target.value;
-                            }}>
-                                <option value="replace">Reemplazar la existente por la nueva</option>
-                                <option value="keep">Mantener la existente y no crear la nueva</option>
-                                <option value="new">Crear una nueva y mantener la existente</option>
-                            </select>
-                        </div>
-                    ))}
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleSubmitMatch}
-                    >
-                        Enviar
-                    </Button>
-                </ErrorBox>
+                        </Box>
+                    </Paper>
+                </Box>
             </Modal>
         </FormContainer>
     );
@@ -386,51 +444,43 @@ const ModalBox = styled(Box)(({ theme }) => ({
     transform: "translate(-50%, -50%)",
 }));
 
-const ErrorBox = styled(Box)(({ theme }) => ({
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: "2rem",
-    borderRadius: "10px",
-    boxShadow: theme.shadows[5],
-    width: "400px", // Ajustar el tamaño del modal
-    height: "80vh", // Ajustar la altura
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    overflowY: "auto",
+// const ErrorBox = styled(Box)(({ theme }) => ({
+//     display: "flex",
+//     flexDirection: "column",
+//     alignItems: "center",
+//     backgroundColor: "#fff",
+//     padding: "2rem",
+//     borderRadius: "10px",
+//     boxShadow: theme.shadows[5],
+//     width: "400px", // Ajustar el tamaño del modal
+//     height: "80vh", // Ajustar la altura
+//     position: "absolute",
+//     top: "50%",
+//     left: "50%",
+//     transform: "translate(-50%, -50%)",
+//     overflowY: "auto",
 
-    // Estilos para la barra de desplazamiento
-    "&::-webkit-scrollbar": {
-        width: "8px", // Ancho de la barra de desplazamiento
-    },
-    "&::-webkit-scrollbar-track": {
-        background: "#f1f1f1", // Color del fondo de la pista
-        borderRadius: "10px", // Opcional para darle un diseño más redondeado
-    },
-    "&::-webkit-scrollbar-thumb": {
-        backgroundColor: "#888", // Color de la barra de desplazamiento
-        borderRadius: "10px", // Opcional para una barra redondeada
-    },
-    "&::-webkit-scrollbar-thumb:hover": {
-        background: "#555", // Color de la barra al hacer hover
-    }
-}));
+//     // Estilos para la barra de desplazamiento
+//     "&::-webkit-scrollbar": {
+//         width: "8px", // Ancho de la barra de desplazamiento
+//     },
+//     "&::-webkit-scrollbar-track": {
+//         background: "#f1f1f1", // Color del fondo de la pista
+//         borderRadius: "10px", // Opcional para darle un diseño más redondeado
+//     },
+//     "&::-webkit-scrollbar-thumb": {
+//         backgroundColor: "#888", // Color de la barra de desplazamiento
+//         borderRadius: "10px", // Opcional para una barra redondeada
+//     },
+//     "&::-webkit-scrollbar-thumb:hover": {
+//         background: "#555", // Color de la barra al hacer hover
+//     }
+// }));
 
 const LoadingText = styled(Typography)({
     marginTop: "3rem",
     fontSize: "1.2rem",
     textAlign: "center",
-});
-
-const ErrorText = styled(Typography)({
-    fontSize: "1rem",
-    textAlign: "justify",
-    width: "100%",
-    marginTop: "0.1rem",
-    marginBottom: "0.1rem",
 });
 
 export default BulkLoading;
