@@ -43,6 +43,11 @@ const CustomModal = styled(Modal)(({ theme }) => ({
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
+  marginTop: '2.5vh',
+  marginBottom: '2.5vh',
+  paddingTop: '20vh',
+  // maxHeight: '95vh',
+  overflow: 'auto',
 }));
 
 export default DownloadArtifactButton;
