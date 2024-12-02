@@ -28,6 +28,9 @@ from rest_framework import routers # unused import routers
 from piezas import views
 
 urlpatterns = [
+    path('password-reset/', views.PasswordResetRequestView.as_view(), name='password_reset'),
+    path('password-reset-confirm/', views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('account/',include('django.contrib.auth.urls')), 
     path("docs/", include_docs_urls(title="Metadata API")),
     path("artifacts/", views.CatalogAPIView.as_view()),
     path("artifact/upload", views.ArtifactCreateUpdateAPIView.as_view()),

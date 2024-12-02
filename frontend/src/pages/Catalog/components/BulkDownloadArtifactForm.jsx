@@ -125,13 +125,13 @@ const checkEmailsMatch = (value, fieldName) => {
         addAlert("Los correos electrónicos no coinciden.");
         return;
       }
-      /*
+      
       if (!validateRut(formValues.rut)) {
         setRutError(true);
         console.log('malo el rut')
         return; // Stop the form submission process
       }
-      */
+  
       // Reset RUT error if validation passes
       setRutError(false);
       // Proceed with download process
@@ -310,27 +310,40 @@ const checkEmailsMatch = (value, fieldName) => {
    * @returns {boolean} True if the RUT is valid, false otherwise.
    */
 const validateRut = (rutStr) => {
-  // Remove dots and dashes from the RUT
-  let rut = rutStr.replace(/\./g, "").replace(/-/g, "").toUpperCase(); // Normalize the RUT to uppercase and remove dots and dashes
-   // 
-  if (rut.length > 9 ) {
+  // Normalize the RUT: remove dots and dashes, and convert to uppercase
+  const normalizedRut = rutStr.replace(/\./g, "").replace(/-/g, "").toUpperCase();
+
+  // Ensure the RUT has at least 2 characters (body + DV)
+  if (normalizedRut.length < 2) {
     return false;
   }
-  const rutBody = rut.slice(0, 8); // The first 8 digits
-  const rutDv = rut[8]; // The last character, which is the verification digit
-  // Calculate the verification digit using the RUT algorithm
+
+  // Separate the body and the verification digit (DV)
+  const rutBody = normalizedRut.slice(0, -1); // All except the last character
+  const rutDv = normalizedRut.slice(-1); // Last character
+
+  // Ensure the body is numeric
+  if (!/^\d+$/.test(rutBody)) {
+    return false;
+  }
+
+  // Calculate the verification digit
   let total = 0;
   let factor = 2;
-  // Loop through the RUT from right to left to calculate the total
+
+  // Loop through the body digits from right to left
   for (let i = rutBody.length - 1; i >= 0; i--) {
     total += parseInt(rutBody[i]) * factor;
     factor = factor === 7 ? 2 : factor + 1;
   }
+
   const rest = total % 11;
   const calculatedDv = 11 - rest;
-   // Calculate the verification digit
-  const validDv = calculatedDv === 10 ? 'K' : calculatedDv === 11 ? '0' : calculatedDv.toString();
-  // Validate if the verification digit matches the entered one
+
+  // Map calculated DV to its string representation
+  const validDv = calculatedDv === 10 ? "K" : calculatedDv === 11 ? "0" : calculatedDv.toString();
+
+  // Return whether the entered DV matches the calculated one
   return validDv === rutDv;
 };
   export default BulkDownloadArtifactForm;

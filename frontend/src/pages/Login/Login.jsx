@@ -80,7 +80,12 @@ const Login = () => {
 
       // Redirect user to previous location or home page
       const from = location.state?.from || "/";
-      navigate(from, { replace: true });
+      console.log("from", from);
+      if (from !== "/" && String(from.pathname).includes("/reset-password")) {
+        navigate("/");
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (error) {
       // Handle any errors that occurred during fetch
       addAlert("Ha ocurrido un error durante la autenticación");
@@ -128,7 +133,9 @@ const Login = () => {
 
         {/* Password recovery message */}
         <CustomTypography variant="body2" align="center" marginTop={2}>
-          ¿Olvidaste tu contraseña? Envíanos un correo a <strong>{ adminEmail }</strong> para recuperar tu acceso.
+          <LinkTypography onClick={() => navigate("/password-recovery")}>
+          Recuperar Contraseña
+          </LinkTypography>
         </CustomTypography>
       </CustomBox>
     </CustomStack>
@@ -157,6 +164,14 @@ const CustomBox = styled(Box)(({ theme }) => ({
 // Styled Button component for the submit button
 const CustomButton = styled(Button)(({ theme }) => ({
   marginTop: theme.spacing(3.5),
+}));
+const LinkTypography = styled(Typography)(({ theme }) => ({
+  color: theme.palette.primary.main,
+  cursor: "pointer",
+  textDecoration: "underline",
+  "&:hover": {
+    color: theme.palette.primary.dark,
+  },
 }));
 
 export default Login;
