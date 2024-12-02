@@ -120,9 +120,11 @@ const RequestDetails = () => {
               </Button>
             </HorizontalStack>
           ) : (
-            <DownloadArtifactButton text = {"Solicitar datos"}>
-              <BulkDownloadArtifactForm artifactInfoList={selectedArtifacts}></BulkDownloadArtifactForm>
-            </DownloadArtifactButton>
+            <HorizontalStack>
+              <DownloadArtifactButton fullWidth text="Solicitar Artefactos">
+                <BulkDownloadArtifactForm artifactInfoList={selectedArtifacts}></BulkDownloadArtifactForm>
+              </DownloadArtifactButton>
+            </HorizontalStack>
           )}
 
           <Button

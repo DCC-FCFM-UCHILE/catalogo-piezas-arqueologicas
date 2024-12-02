@@ -67,6 +67,15 @@ const Catalog = () => {
     navigate("/catalog/new", { state: { from: location } });
   };
 
+  const handleButtonSelectionMode = () => {
+    //if not selectionMode 
+    if(!isSelectionMode){
+    changeSelectionMode();
+    changeDetailsOpen();}else{
+      changeSelectionMode();
+    }
+
+  };
   return (
     <Container>
       {/* Title of the catalog */}
@@ -86,7 +95,7 @@ const Catalog = () => {
             </Button>
             )}
           {/* Button to change selection mode */}
-          <Button variant={isSelectionMode ? "contained" : "outlined"} color="secondary" size="large" onClick={changeSelectionMode}>
+          <Button variant={isSelectionMode ? "contained" : "outlined"} color="secondary" size="large" onClick={handleButtonSelectionMode}>
           {isSelectionMode ? "Desactivar Modo Selección" : "Seleccionar Artefactos Para Descargar"}
           </Button>
           {isSelectionMode && <Button variant="outlined" color="secondary" size="large" onClick={changeDetailsOpen}>

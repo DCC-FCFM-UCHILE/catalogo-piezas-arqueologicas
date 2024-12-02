@@ -8,6 +8,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import DoneIcon from '@mui/icons-material/Done';
 import DownloadDoneIcon from '@mui/icons-material/DownloadDone';
+import { green, pink, yellow, lightBlue } from '@mui/material/colors'; // Importa los colores
+
 
 const DownloadRequest = () => {
     const { token } = useToken();
@@ -78,6 +80,21 @@ const DownloadRequest = () => {
                 return <MoreHorizIcon />;
         }
     };
+    const getStatusColor = (status) => {
+        switch (status.toLowerCase()) {
+            case "accepted":
+            case "downloaded":
+                return green[100];
+            case "pending":
+                return lightBlue[100];
+            case "partiallyaccepted":
+                return yellow[100];
+            case "rejected":
+                return pink[100];
+            default:
+                return "transparent";
+        }
+    };
     const getHeaderText = (filter) => {
         switch (filter) {
             case "accepted":
@@ -139,7 +156,13 @@ const DownloadRequest = () => {
                                     </IconButton>
                                     <ListItemText
                                         primary={`${request.name}: Solicita ${request.request_count} ${request.request_count === 1 ? "pieza" : "piezas"}`}
-                                        secondary={`Estado: ${translateStatus(request.status)}`}
+                                        secondary={
+                                            <>
+                                            Estado: <Box component="span" sx={{ backgroundColor: getStatusColor(request.status), padding: '0 4px', borderRadius: '4px' }}>
+                                                {translateStatus(request.status)}
+                                            </Box>
+                                            </>
+                                        }
                                     />
                                     <ListItemIcon>
                                         {getStatusIcon(request.status)}
