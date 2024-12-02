@@ -288,6 +288,9 @@ const checkEmailsMatch = (value, fieldName) => {
     display: "flex",
     flexDirection: "column",
     gap: theme.spacing(2),
+    maxHeight: "100vh", // Limita la altura máxima
+    overflowY: "auto", // Habilita el desplazamiento interno si es necesario
+    margin: "0 auto", // Centra horizontalmente
   }));
 
   const CustomButton = styled(Button)(({ theme }) => ({
@@ -303,7 +306,9 @@ const checkEmailsMatch = (value, fieldName) => {
     gap: theme.spacing(2),
   }));
 
+
   
+
 /**
    * validateRut validates the format and checksum of a Chilean RUT.
    * @param {string} rutStr The RUT string to be validated.
