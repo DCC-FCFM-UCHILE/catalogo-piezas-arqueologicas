@@ -302,7 +302,7 @@ const BulkLoading = () => {
                             padding: '20px',
                             borderRadius: '8px',
                             maxWidth: '500px',
-                            textAlign: 'center'
+                            textAlign: 'left'
                         }}
                     >
                         <Typography variant="h6" gutterBottom>
