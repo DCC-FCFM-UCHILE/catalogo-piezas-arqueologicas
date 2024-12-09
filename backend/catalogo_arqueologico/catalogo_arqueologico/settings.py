@@ -101,14 +101,14 @@ REST_FRAMEWORK = {
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-""" 
+"""
 DATABASES = {
         "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -118,7 +118,7 @@ DATABASES = {
         "HOST": env.str("DB_HOST"),
         "PORT": env.int("DB_PORT"),
         }
-} """
+} 
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -214,7 +214,20 @@ LOGGING = {
     },
 }
 
-# Correo desarrollo cambiar a smtp para producción
-EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
-EMAIL_FILE_PATH = "/app/media/emails"
+# Backend de correo para producción
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+# Configuración del servidor SMTP
+EMAIL_HOST = "localhost"  # Cambia esto si usas un servidor externo (p. ej., 'smtp.gmail.com')
+EMAIL_PORT = 3108         # Puerto donde el servidor SMTP escucha
+EMAIL_USE_TLS = False     # Cambia a True si el servidor requiere TLS
+EMAIL_USE_SSL = False     # Cambia a True si el servidor requiere SSL
+
+# Credenciales del servidor SMTP
+EMAIL_HOST_USER = "tu_usuario"       # Usuario SMTP (p. ej., 'admin@catalogo.dcc.uchile.cl')
+EMAIL_HOST_PASSWORD = "tu_contraseña"  # Contraseña del usuario SMTP
+
+# Configuración adicional
+DEFAULT_FROM_EMAIL = "no-reply@catalogo.dcc.uchile.cl"  # Correo desde el cual se enviarán los correos
+SERVER_EMAIL = "admin@catalogo.dcc.uchile.cl"          # Correo usado para errores y mensajes administrativos
 
