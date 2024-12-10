@@ -17,7 +17,7 @@ import pandas as pd
 import time
 import threading
 import numpy as np
-import cv2
+from PIL import Image as PILImage
 from scipy.spatial import distance
 from ast import literal_eval
 import json
@@ -859,13 +859,15 @@ class BulkLoadingAPIView(generics.GenericAPIView):
             )
         #obtenemos los descriptores de las piezas existentes para comparar
         descriptores, ids = self.get_existing_descriptors()
-
+        print("Largo del descriptor",len(descriptores[0]))
         posible_matches = []
         count = 0
         # Iterate over the artifacts and create or update them
         for data in data_with_files:
             desc = [data["thumbnail_desc"]]
             desc.extend(data["images_desc"])
+            for d in desc:
+                print("Largo del descriptor de las piezas nuevas: ",len(d))
             matriz = distance.cdist(descriptores, desc, 'cityblock')
             min_dist = np.min(matriz)
             min_row, min_col = np.unravel_index(np.argmin(matriz), matriz.shape)
@@ -1144,7 +1146,6 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                 descriptor_array = np.array(descriptors_list)
                 descriptors.append(descriptor_array)
             ids.extend(item["ids"])
-            print(f"Descriptor: {len(descriptors)}, IDs: {len(ids)}")
         return descriptors, ids
 
     def get_descriptor(self, path: str):
@@ -1152,29 +1153,43 @@ class BulkLoadingAPIView(generics.GenericAPIView):
         Get the descriptor of a file.
         """
         try:
+            # Load the image in grayscale
+            image = PILImage.open(self.temp_dir + path).convert("L")
+            img_array = np.array(image)
+
+            # Equalize the histogram manually
+            hist, bins = np.histogram(img_array.flatten(), 256, [0, 256])
+            cdf = hist.cumsum()
+            cdf_normalized = (cdf - cdf.min()) * 255 / (cdf.max() - cdf.min())
+            img_eq = cdf_normalized[img_array]
+
+            # Descriptor parameters
             num_zonas_x = 4
             num_zonas_y = 4
             num_bins_por_zona = 8
-            image = cv2.imread(os.path.normpath(self.temp_dir + path), cv2.IMREAD_GRAYSCALE)
-            img_eq = cv2.equalizeHist(image)
             descriptor = []
+
+            # Compute histograms for each zone
+            zona_height = img_eq.shape[0] // num_zonas_y
+            zona_width = img_eq.shape[1] // num_zonas_x
+
             for j in range(num_zonas_y):
-                desde_y = int(img_eq.shape[0] / num_zonas_y * j)
-                hasta_y = int(img_eq.shape[0] / num_zonas_y * (j + 1))
                 for i in range(num_zonas_x):
-                    desde_x = int(img_eq.shape[1] / num_zonas_x * i)
-                    hasta_x = int(img_eq.shape[1] / num_zonas_x * (i + 1))
-                    # recortar zona de la img
-                    zona = img_eq[desde_y:hasta_y, desde_x:hasta_x]
-                    # histograma de los pixeles de la zona
-                    histograma, limites = np.histogram(zona, bins=num_bins_por_zona, range=(0, 255))
-                    # normalizar histograma (bins suman 1)
-                    histograma = histograma / np.sum(histograma)
-                    # agregar descriptor de la zona al descriptor global
-                    descriptor.extend(histograma)
-            return np.array(descriptor)
+                    # Extract the zone
+                    zona = img_eq[
+                        j * zona_height:(j + 1) * zona_height,
+                        i * zona_width:(i + 1) * zona_width,
+                    ]
+                    # Calculate histogram for the zone
+                    hist_zona, _ = np.histogram(zona, bins=num_bins_por_zona, range=(0, 256))
+                    # Normalize the histogram
+                    hist_zona = hist_zona / np.sum(hist_zona)
+                    # Append to the global descriptor
+                    descriptor.extend(hist_zona)
+            return descriptor
         except Exception as e:
-            logger.error(f"Error al obtener descriptor: {e}")
+            # Handle errors (e.g., file not found, invalid image)
+            print(f"Error calculating histogram: {e}")
             return []
         
 

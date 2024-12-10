@@ -25,7 +25,7 @@ artifacts within the system.
 
 import logging
 import numpy as np
-import cv2
+from PIL import Image as PILImage
 import json
 from django.db import models
 from django.contrib.auth.models import AbstractUser
@@ -238,32 +238,53 @@ class Thumbnail(models.Model):
     @property
     def histogram(self):
         """
-        Compute the histogram of the thumbnail and return in a value 
+        Compute the histogram of the image divided into zones.
+
+        The image is divided into a grid, and histograms are calculated for
+        each zone. The result is a concatenated descriptor for the entire image.
 
         Returns:
-            numpy.ndarray: Histogram of the thumbnail.
+            list[float]: Normalized histogram descriptor of the image.
         """
-        num_zonas_x = 4
-        num_zonas_y = 4
-        num_bins_por_zona = 8
-        image = cv2.imread(self.path.path, cv2.IMREAD_GRAYSCALE)
-        img_eq = cv2.equalizeHist(image)
-        descriptor = []
-        for j in range(num_zonas_y):
-            desde_y = int(img_eq.shape[0] / num_zonas_y * j)
-            hasta_y = int(img_eq.shape[0] / num_zonas_y * (j + 1))
-            for i in range(num_zonas_x):
-                desde_x = int(img_eq.shape[1] / num_zonas_x * i)
-                hasta_x = int(img_eq.shape[1] / num_zonas_x * (i + 1))
-                # recortar zona de la img
-                zona = img_eq[desde_y:hasta_y, desde_x:hasta_x]
-                # histograma de los pixeles de la zona
-                histograma, limites = np.histogram(zona, bins=num_bins_por_zona, range=(0, 255))
-                # normalizar histograma (bins suman 1)
-                histograma = histograma / np.sum(histograma)
-                # agregar descriptor de la zona al descriptor global
-                descriptor.extend(histograma)
-        return descriptor
+        try:
+            # Load the image in grayscale
+            image = PILImage.open(self.path.path).convert("L")
+            img_array = np.array(image)
+
+            # Equalize the histogram manually
+            hist, bins = np.histogram(img_array.flatten(), 256, [0, 256])
+            cdf = hist.cumsum()
+            cdf_normalized = (cdf - cdf.min()) * 255 / (cdf.max() - cdf.min())
+            img_eq = cdf_normalized[img_array]
+
+            # Descriptor parameters
+            num_zonas_x = 4
+            num_zonas_y = 4
+            num_bins_por_zona = 8
+            descriptor = []
+
+            # Compute histograms for each zone
+            zona_height = img_eq.shape[0] // num_zonas_y
+            zona_width = img_eq.shape[1] // num_zonas_x
+
+            for j in range(num_zonas_y):
+                for i in range(num_zonas_x):
+                    # Extract the zone
+                    zona = img_eq[
+                        j * zona_height:(j + 1) * zona_height,
+                        i * zona_width:(i + 1) * zona_width,
+                    ]
+                    # Calculate histogram for the zone
+                    hist_zona, _ = np.histogram(zona, bins=num_bins_por_zona, range=(0, 256))
+                    # Normalize the histogram
+                    hist_zona = hist_zona / np.sum(hist_zona)
+                    # Append to the global descriptor
+                    descriptor.extend(hist_zona)
+
+            return descriptor
+        except Exception as e:
+            logger.error(f"Error computing histogram for thumbnail: {e}")
+            return []
     
     def save(self, *args, **kwargs):
         """
@@ -272,7 +293,7 @@ class Thumbnail(models.Model):
         super().save(*args, **kwargs)  # Save first to ensure the path is established
         
         # Now compute and set the descriptor
-        image = cv2.imread(self.path.path)
+        image = PILImage.open(self.path.path)
         if image is not None:
             self.descriptor = json.dumps(self.histogram)
             super().save(update_fields=['descriptor'])  # Update only the descriptor field
@@ -328,39 +349,60 @@ class Image(models.Model):
     @property
     def histogram(self):
         """
-        Compute the histogram of the thumbnail and return in a value 
+        Compute the histogram of the image divided into zones.
+
+        The image is divided into a grid, and histograms are calculated for
+        each zone. The result is a concatenated descriptor for the entire image.
 
         Returns:
-            numpy.ndarray: Histogram of the thumbnail.
+            list[float]: Normalized histogram descriptor of the image.
         """
-        num_zonas_x = 4
-        num_zonas_y = 4
-        num_bins_por_zona = 8
-        image = cv2.imread(self.path.path, cv2.IMREAD_GRAYSCALE)
-        img_eq = cv2.equalizeHist(image)
-        descriptor = []
-        for j in range(num_zonas_y):
-            desde_y = int(img_eq.shape[0] / num_zonas_y * j)
-            hasta_y = int(img_eq.shape[0] / num_zonas_y * (j + 1))
-            for i in range(num_zonas_x):
-                desde_x = int(img_eq.shape[1] / num_zonas_x * i)
-                hasta_x = int(img_eq.shape[1] / num_zonas_x * (i + 1))
-                # recortar zona de la img
-                zona = img_eq[desde_y:hasta_y, desde_x:hasta_x]
-                # histograma de los pixeles de la zona
-                histograma, limites = np.histogram(zona, bins=num_bins_por_zona, range=(0, 255))
-                # normalizar histograma (bins suman 1)
-                histograma = histograma / np.sum(histograma)
-                # agregar descriptor de la zona al descriptor global
-                descriptor.extend(histograma)
-        return descriptor
+        try:
+            # Load the image in grayscale
+            image = PILImage.open(self.path.path).convert("L")
+            img_array = np.array(image)
+
+            # Equalize the histogram manually
+            hist, bins = np.histogram(img_array.flatten(), 256, [0, 256])
+            cdf = hist.cumsum()
+            cdf_normalized = (cdf - cdf.min()) * 255 / (cdf.max() - cdf.min())
+            img_eq = cdf_normalized[img_array]
+
+            # Descriptor parameters
+            num_zonas_x = 4
+            num_zonas_y = 4
+            num_bins_por_zona = 8
+            descriptor = []
+
+            # Compute histograms for each zone
+            zona_height = img_eq.shape[0] // num_zonas_y
+            zona_width = img_eq.shape[1] // num_zonas_x
+
+            for j in range(num_zonas_y):
+                for i in range(num_zonas_x):
+                    # Extract the zone
+                    zona = img_eq[
+                        j * zona_height:(j + 1) * zona_height,
+                        i * zona_width:(i + 1) * zona_width,
+                    ]
+                    # Calculate histogram for the zone
+                    hist_zona, _ = np.histogram(zona, bins=num_bins_por_zona, range=(0, 256))
+                    # Normalize the histogram
+                    hist_zona = hist_zona / np.sum(hist_zona)
+                    # Append to the global descriptor
+                    descriptor.extend(hist_zona)
+
+            return descriptor
+        except Exception as e:
+            logger.error(f"Error computing histogram for image: {e}")
+            return []
     
     def save(self, *args, **kwargs):
         """
         Save method for the Image model.
         """
         super().save(*args, **kwargs)
-        image = cv2.imread(self.path.path)
+        image = PILImage.open(self.path.path)
         if image is not None:
             self.descriptor = json.dumps(self.histogram)
             super().save(update_fields=['descriptor'])
