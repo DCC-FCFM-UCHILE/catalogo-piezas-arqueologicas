@@ -1,14 +1,19 @@
-version: "3.8"
-
+#version: "3.4" 
+ 
 services:
   db:
     image: postgres:12
     container_name: postgres-db
-    env_file: ./backend/catalogo_arqueologico/.env
+    environment: 
+      POSTGRES_USER: museomapa_u
+      POSTGRES_PASSWORD: AbareMuonegit-E13
+      POSTGRES_DB: museomapa_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    expose:
+      - 5432
+    # ports:
+    #   - "5433:5432"
 
   django:
     build: ./backend
@@ -19,8 +24,8 @@ services:
       - ./data:/data
       - django_static:/app/static # This line ensures the statics files are stored in a volume
       - django_media:/app/media # This line ensures the media files are stored in a volume
-    ports:
-      - "8000:8000"
+    expose:
+      - 8000
     depends_on:
       - db
 
@@ -30,8 +35,8 @@ services:
     volumes:
       - ./frontend:/app
       - react_build:/app/build # This line ensures the static frontend files are stored in a volume
-    ports:
-      - "3000:3000"
+    expose:
+      - 3000
     depends_on:
       - django
 
@@ -39,8 +44,7 @@ services:
     build:
       context: ./nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - 3108:80
     depends_on:
       - django
       - react

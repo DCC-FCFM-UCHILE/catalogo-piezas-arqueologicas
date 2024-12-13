@@ -1,4 +1,4 @@
-FROM python:3.8.5-alpine
+FROM python:3.13.1-alpine
 
 ENV PYTHONUNBUFFERED=1
 
@@ -18,11 +18,12 @@ RUN pip install --upgrade pip
 WORKDIR /app/catalogo_arqueologico
 
 # Copy the requirements file and install dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# COPY requirements.txt .
 
 # Copy the application code
 COPY . .
+
+RUN pip install -r requirements.txt
 
 # Set the default command to run the backend application
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
