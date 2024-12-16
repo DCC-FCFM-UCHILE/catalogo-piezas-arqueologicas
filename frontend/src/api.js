@@ -1,7 +1,8 @@
 const getBaseUrl = () => {
   if (process.env.NODE_ENV === "production") {
     // In production, use the same origin (assuming nginx is routing properly)
-    return "https://catalogo.test.dcc.uchile.cl";
+    // return "https://catalogo.test.dcc.uchile.cl";
+    return "";
   }
   // In development, use localhost
   return "http://localhost:8000";

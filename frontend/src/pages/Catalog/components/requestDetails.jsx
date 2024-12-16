@@ -93,8 +93,8 @@ const RequestDetails = () => {
               <Typography variant="body1" sx={{ marginRight: 1 }}>Pieza {artifact.id}</Typography>
 
               <IconContainer>
-                <img src='/eye.svg' alt="Icono 1" width={16} height={16} style={{ marginRight: 4 }} onClick={() => navigate(`/catalog/${artifact.id}`)}/>
-                <img src='./delete.svg' alt="Icono 2" width={16} height={16} onClick={() => removeById(artifact.id)}  />
+                <img src='/static/images/eye.svg' alt="Icono 1" width={16} height={16} style={{ marginRight: 4 }} onClick={() => navigate(`/catalog/${artifact.id}`)}/>
+                <img src='./static/images/delete.svg' alt="Icono 2" width={16} height={16} onClick={() => removeById(artifact.id)}  />
               </IconContainer>
             </ListItem>
             <Divider />

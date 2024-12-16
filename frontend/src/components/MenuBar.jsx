@@ -124,7 +124,7 @@ const MenuBar = () => {
             onClick={() => navigate("/")}
           >
             <img
-              src={`${process.env.PUBLIC_URL}/logo.svg`}
+              src={`${process.env.PUBLIC_URL}/static/images/logo.svg`}
               alt="logo"
               style={{ height: "40px" }}
             />

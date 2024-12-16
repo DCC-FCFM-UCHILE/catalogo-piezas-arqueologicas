@@ -251,7 +251,7 @@ const BulkLoading = () => {
                     <Button
                             variant="contained"
                             color="primary"
-                            href="/plantilla.xlsx" // URL de la plantilla de Excel para
+                            href="/static/plantilla.xlsx" // URL de la plantilla de Excel para
                             download
                             startIcon={<DownloadIcon />}
                         >

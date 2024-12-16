@@ -72,7 +72,7 @@ const ArtifactCard = ({ artifact, isSelectionMode,onSelectArtifact,selected}) =>
         <CustomCardMedia
           component="img"
           height="140"
-          image="/not_found_image.png"
+          image="static/images/not_found_image.png"
           alt={id}
           onClick={handleRedirect}
         />
