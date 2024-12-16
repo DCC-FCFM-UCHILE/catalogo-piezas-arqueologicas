@@ -19,13 +19,20 @@ Imports:
 """
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from catalogo_arqueologico.views import LoginView
+from django.shortcuts import redirect
+from django.views.generic import TemplateView
+from backend.views import LoginView
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("api/admin/", admin.site.urls),
     path("api/auth/", LoginView.as_view()),
     path("api/catalog/", include("piezas.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.FRONTEND_DEV:
+    urlpatterns += [re_path(r"^$", lambda request: redirect(settings.FRONTEND_URL, permanent=False))]
+else:
+    urlpatterns += [re_path(r"^(?!api/|api/admin/).*", TemplateView.as_view(template_name="index.html"))]
