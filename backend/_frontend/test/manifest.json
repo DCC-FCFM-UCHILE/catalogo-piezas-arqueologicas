@@ -3,17 +3,17 @@
   "name": "Catálogo de piezas arqueológicas | MAPA",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "static/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
     {
-      "src": "logo193.png",
+      "src": "static/images/logo193.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo515.png",
+      "src": "static/images/logo515.png",
       "type": "image/png",
       "sizes": "512x512"
     }
