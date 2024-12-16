@@ -125,7 +125,8 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"http:\/\/localhost(.)*",
 ]
 CSRF_TRUSTED_ORIGINS_REGEXES = [
-    "http://localhost:8080",  # Agrega el origen del servidor frontend
+    r"https:\/\/(.)*(dcc|ing).uchile.cl",
+    r"http:\/\/localhost(.)*",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -183,4 +184,4 @@ SESSION_COOKIE_SECURE = True
 AUTH_USER_MODEL = "piezas.CustomUser"
 
 # Default login URL
-LOGIN_URL = "http://localhost:3000/login"
+LOGIN_URL = env.str("DJANGO_LOGIN_URL")
