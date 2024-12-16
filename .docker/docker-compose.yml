@@ -22,7 +22,7 @@ services:
             dockerfile: .docker/backend/Dockerfile
             target: develop
         container_name: catalogo-piezas-arqueologicas
-        command: ["sh", "-c", "python manage.py runserver 0.0.0.0:8000 --settings=core.settings.docker --nothreading"]
+        command: ["sh", "-c", "python manage.py runserver 0.0.0.0:8000 --settings=backend.settings.docker --nothreading"]
         restart: always
         volumes:
             - ../backend/:/app/:cached
