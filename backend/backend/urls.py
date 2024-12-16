@@ -27,7 +27,7 @@ from django.views.generic import TemplateView
 from backend.views import LoginView
 
 urlpatterns = [
-    path("api/admin/", admin.site.urls),
+    path("admin/", admin.site.urls),
     path("api/auth/", LoginView.as_view()),
     path("api/catalog/", include("piezas.urls")),
 ]
@@ -35,7 +35,7 @@ urlpatterns = [
 if settings.FRONTEND_DEV:
     urlpatterns += [re_path(r"^$", lambda request: redirect(settings.FRONTEND_URL, permanent=False))]
 else:
-    urlpatterns += [re_path(r"^(?!api/catalog/|api/admin/|api/auth).*", TemplateView.as_view(template_name="index.html"))]
+    urlpatterns += [re_path(r"^(?!api/catalog/|admin/|api/auth).*", TemplateView.as_view(template_name="index.html"))]
     urlpatterns += [re_path(r"^manifest.json", TemplateView.as_view(template_name="manifest.json"))]
 
 if settings.DEBUG:
