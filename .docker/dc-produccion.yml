@@ -11,7 +11,7 @@ services:
             args:
                 UID: 1001
                 GID: 100
-        command: gunicorn --workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir /dev/shm --env --bind :8000 backend.wsgi
+        command: gunicorn --workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir /dev/shm --bind :8000 backend.wsgi
         volumes:
             - /home/instalar/static/catalogo-piezas-arqueologicas/:/static/:rw
             - /home/instalar/media/catalogo-piezas-arqueologicas/:/media/:rw
