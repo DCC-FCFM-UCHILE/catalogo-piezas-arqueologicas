@@ -6,8 +6,6 @@ env = environ.Env()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
-
 SECRET_KEY = env.str("DJANGO_SECRET_KEY")
 
 INSTALLED_APPS = [
@@ -115,6 +113,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = env.str("DJANGO_STATIC_URL")
+STATICFILES_DIRS = (f"_frontend/{FRONTEND_ENV}/static",)
 STATIC_ROOT = "/static"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -136,7 +135,7 @@ REST_FRAMEWORK = {
     ],
 }
 
-DATA_ROOT = "../data/"
+DATA_ROOT = "/app/_data/"
 CULTURE_CSV_PATH = os.path.join(DATA_ROOT, "coleccion-cultura.csv")
 MODEL_FOLDER_PATH = os.path.join(DATA_ROOT, "complete-dataset/")
 SHAPE_FOLDER_PATH = os.path.join(DATA_ROOT, "clasificacion-forma/")
