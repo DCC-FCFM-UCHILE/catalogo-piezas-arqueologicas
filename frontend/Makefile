@@ -6,13 +6,13 @@ serve:
 
 # se debe parametrizar para que esto se vaya directo a las carpetas respectivas
 # por ahora se mueve a mano
-build_dev:
-	rm -rf ../backend/_frontend/dev
-	npm run build
+# build_dev:
+# 	rm -rf ../backend/_frontend/dev
+# 	npm run build
 
-build_test:
-	rm -rf ../backend/_frontend/test
-	NODE_ENV=production npm run build
+# build_test:
+# 	rm -rf ../backend/_frontend/test
+# 	NODE_ENV=production npm run build
 
 # build_prod:
 # 	rm -rf ../backend/_frontend/prod
