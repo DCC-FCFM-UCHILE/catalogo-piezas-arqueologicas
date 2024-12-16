@@ -36,6 +36,7 @@ if settings.FRONTEND_DEV:
     urlpatterns += [re_path(r"^$", lambda request: redirect(settings.FRONTEND_URL, permanent=False))]
 else:
     urlpatterns += [re_path(r"^(?!api/catalog/|api/admin/|api/auth).*", TemplateView.as_view(template_name="index.html"))]
+    urlpatterns += [re_path(r"^manifest.json", TemplateView.as_view(template_name="manifest.json"))]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
