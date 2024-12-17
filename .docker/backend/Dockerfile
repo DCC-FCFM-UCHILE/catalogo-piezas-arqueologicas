@@ -6,6 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONFAULTHANDLER 1
 ENV PYTHONUNBUFFERED 1
 
+RUN apt -y install --no-install-recommends zip unzip
+
 RUN mkdir -p /static /logs /media /backup
 
 COPY backend/ .
