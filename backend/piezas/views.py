@@ -895,9 +895,9 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                 #buscar algun archivo de thumbnail
                 print("Busca archivo thumbnail")
                 thumbnail = data["file_thumbnail"]
-                thumbnail_path = os.path.join(temp_dir,thumbnail)
+                thumbnail_path = os.path.join(temp_dir,thumbnail.lstrip("/"))
                 with open(thumbnail_path, "rb") as f:
-                    thumbnail_file = File(f, name=thumbnail)
+                    thumbnail_file = File(f, name=thumbnail.lstrip("/"))
                     thumbnail_instance = Thumbnail.objects.create(path=thumbnail_file)
 
                 #buscar los archivos de modelo
