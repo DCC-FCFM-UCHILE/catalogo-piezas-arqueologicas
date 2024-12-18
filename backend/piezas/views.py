@@ -894,7 +894,7 @@ class BulkLoadingAPIView(generics.GenericAPIView):
 
                 #buscar algun archivo de thumbnail
                 thumbnail = data["file_thumbnail"]
-                thumbnail_path = os.path.normpath(temp_dir + thumbnail)
+                thumbnail_path = os.path.join(temp_dir,thumbnail)
                 with open(thumbnail_path, "rb") as f:
                     thumbnail_file = File(f, name=thumbnail)
                     thumbnail_instance = Thumbnail.objects.create(path=thumbnail_file)
@@ -905,9 +905,9 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                 object_file = [file for file in models if file.endswith(".obj")]
                 material_file = [file for file in models if file.endswith(".mtl")]
                 if texture_file != [] and object_file != [] and material_file != []:
-                    texture_path = os.path.normpath(temp_dir + texture_file[0])
-                    object_path = os.path.normpath(temp_dir + object_file[0])
-                    material_path = os.path.normpath(temp_dir + material_file[0])
+                    texture_path = os.path.join(temp_dir,texture_file[0])
+                    object_path = os.path.join(temp_dir,object_file[0])
+                    material_path = os.path.join(temp_dir,material_file[0])
                     with open(texture_path, "rb") as f:
                         texture_file = File(f, name=texture_file[0])
                         with open(object_path, "rb") as f:
@@ -939,7 +939,7 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                 images = data["files_images"]
                 images_instances = []
                 for image in images:
-                    image_path = os.path.normpath(temp_dir + image)
+                    image_path = os.path.join(temp_dir,image)
                     with open(image_path, "rb") as f:
                         image_file = File(f, name=image)
                         image_instance = Image.objects.create(path=image_file, id_artifact=artifact)
