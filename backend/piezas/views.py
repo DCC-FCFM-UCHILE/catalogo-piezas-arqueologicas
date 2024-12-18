@@ -893,6 +893,7 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                 description = data["description"]
 
                 #buscar algun archivo de thumbnail
+                print("Busca archivo thumbnail")
                 thumbnail = data["file_thumbnail"]
                 thumbnail_path = os.path.join(temp_dir,thumbnail)
                 with open(thumbnail_path, "rb") as f:
@@ -900,6 +901,7 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                     thumbnail_instance = Thumbnail.objects.create(path=thumbnail_file)
 
                 #buscar los archivos de modelo
+                print("Busca archivos de modelo")
                 models = data["files_model"]
                 texture_file = [file for file in models if file.endswith(".jpg")]
                 object_file = [file for file in models if file.endswith(".obj")]
@@ -927,6 +929,7 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                     model = None
 
                 # crear la pieza
+                print("Crear la pieza")
                 artifact = Artifact.objects.create(
                     description=description,
                     id_thumbnail=thumbnail_instance,
@@ -940,6 +943,7 @@ class BulkLoadingAPIView(generics.GenericAPIView):
                 images_instances = []
                 for image in images:
                     image_path = os.path.join(temp_dir,image)
+                    print("image path:", image_path)
                     with open(image_path, "rb") as f:
                         image_file = File(f, name=image)
                         image_instance = Image.objects.create(path=image_file, id_artifact=artifact)
